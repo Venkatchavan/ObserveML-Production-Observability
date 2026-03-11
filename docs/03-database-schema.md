@@ -1,13 +1,13 @@
-# Database Schema — ObserveML
-**v0.1.0 | 2026-03-11 | Database Architect**
+﻿# Database Schema â€” ObserveML
+**v1.0.3 | 2026-03-12 | Database Architect**
 
 ---
 
 ## 1. Entity Relationship Overview
 
 ```
-organizations ──< api_keys
-organizations ──< alert_rules
+organizations â”€â”€< api_keys
+organizations â”€â”€< alert_rules
 [ClickHouse] metric_events (time-series, partitioned by org + day)
 [PostgreSQL] organizations, api_keys, alert_rules
 ```
@@ -102,6 +102,7 @@ CREATE INDEX idx_alert_rules_org ON alert_rules(org_id);
 
 ## 6. Privacy Notes
 
-- `prompt_hash`: SHA-256 of prompt+response content — enables dedup without storing content
+- `prompt_hash`: SHA-256 of prompt+response content â€” enables dedup without storing content
 - `call_site`: hashed source file + line number (not function names or code content)
 - ClickHouse TTL: auto-deletes events older than 90 days (configurable)
+

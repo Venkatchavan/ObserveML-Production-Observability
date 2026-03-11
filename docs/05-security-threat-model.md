@@ -1,5 +1,5 @@
-# Security Threat Model — ObserveML
-**v0.1.0 | 2026-03-11 | Security Engineer**
+﻿# Security Threat Model â€” ObserveML
+**v1.0.3 | 2026-03-12 | Security Engineer**
 
 ---
 
@@ -41,13 +41,13 @@
 
 ### T-02: Cross-Org Metric Leakage
 **Threat**: Org A's API key used to read Org B's metrics.  
-**Control**: API key → org_id lookup is server-side; all queries scoped by org_id derived from key, not from request body.  
+**Control**: API key â†’ org_id lookup is server-side; all queries scoped by org_id derived from key, not from request body.  
 **Residual Risk**: LOW
 
 ### T-03: SDK Supply Chain Attack
 **Threat**: ObserveML SDK package compromised to exfiltrate LLM prompts/responses.  
 **Control**: SDK only captures metadata (never prompt content); PyPI + npm packages published via GitHub Actions OIDC (no manual publish).  
-**Residual Risk**: MEDIUM — `⚠️ REQUIRES HUMAN REVIEW` before each SDK release
+**Residual Risk**: MEDIUM â€” `âš ï¸ REQUIRES HUMAN REVIEW` before each SDK release
 
 ### T-04: Metric Flooding (DoS)
 **Threat**: Attacker floods ingest endpoint with high-volume events to inflate ClickHouse storage.  
@@ -69,3 +69,4 @@
 - Pre-launch: SDK security review (confirm no content capture)
 - On each SDK release: `pip-audit` + `npm audit` + manual code review
 - Quarterly: dependency CVE review
+

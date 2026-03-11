@@ -1,8 +1,9 @@
-site_name: ObserveML
-site_description: Drop-in LLM observability — metadata only, never prompt content
+﻿site_name: ObserveML
+site_description: Drop-in LLM observability â€” metadata only, never prompt content
 site_url: https://docs.observeml.io
-repo_url: https://github.com/theagency/observeml
-repo_name: theagency/observeml
+repo_url: https://github.com/Venkatchavan/ObserveML-Production-Observability
+repo_name: Venkatchavan/ObserveML-Production-Observability
+copyright: Copyright &copy; 2026 Venkat Chavan
 
 theme:
   name: material
@@ -23,6 +24,7 @@ nav:
   - Quick Start: quickstart.md
   - Privacy: privacy.md
   - API Reference: api-reference.md
+  - Changelog: changelog.md
 
 extra:
   version:
@@ -43,3 +45,4 @@ markdown_extensions:
       alternate_style: true
   - attr_list
   - tables
+

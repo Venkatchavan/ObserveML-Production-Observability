@@ -1,4 +1,4 @@
-# Quick Start
+﻿# Quick Start
 
 ## 1. Create an Account
 
@@ -8,12 +8,12 @@ Sign up at [app.observeml.io](https://app.observeml.io) and create your first AP
 
 === "Python"
     ```bash
-    pip install observeml==1.0.2
+    pip install observeml==1.0.3
     ```
 
 === "TypeScript / npm"
     ```bash
-    npm install observeml@1.0.0
+    npm install observeml@1.0.3
     ```
 
 ## 3. Configure
@@ -35,7 +35,7 @@ Sign up at [app.observeml.io](https://app.observeml.io) and create your first AP
 ## 4. Track Your First Call
 
 Wrap each LLM call with a timer and track the result. The call to `track()` is
-fire-and-forget — it returns immediately and never blocks the caller.
+fire-and-forget â€” it returns immediately and never blocks the caller.
 
 === "Python (OpenAI)"
     ```python
@@ -118,3 +118,4 @@ curl -X POST https://api.observeml.io/v1/alerts \
     "webhook_url": "https://hooks.slack.com/your-webhook"
   }'
 ```
+

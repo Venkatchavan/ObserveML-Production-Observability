@@ -1,4 +1,4 @@
-"""ObserveML Python SDK — v0.1.0
+"""ObserveML Python SDK â€” v0.1.0
 
 Observer Principle: track() captures metadata ONLY.
 No prompt or response content is ever transmitted.
@@ -10,7 +10,7 @@ import types
 from .tracker import ObserveML, configure, track, prompt_hash
 
 __all__ = ["ObserveML", "configure", "track", "prompt_hash"]
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 
 class _Module(types.ModuleType):

@@ -1,8 +1,8 @@
-# ObserveML
+﻿# ObserveML
 
-**v1.0.2 — Drop-in LLM observability for production AI applications.**
+**v1.0.3 â€” Drop-in LLM observability for production AI applications.**
 
-ObserveML tracks what matters — latency, tokens, cost, error rates — without ever
+ObserveML tracks what matters â€” latency, tokens, cost, error rates â€” without ever
 touching prompt or response content.
 
 ## Why ObserveML?
@@ -12,7 +12,7 @@ touching prompt or response content.
 | LLM calls are slow and expensive | p99 < 1ms `track()` overhead; real-time dashboards |
 | Cost visibility is poor | Per-model daily cost breakdown, auto-estimated |
 | Regressions go unnoticed | Sliding-window statistical detection (Welch's z-test) |
-| Compliance requires no-content logging | Observer Principle — no prompt/response transmitted |
+| Compliance requires no-content logging | Observer Principle â€” no prompt/response transmitted |
 
 ## Installation
 
@@ -47,12 +47,14 @@ That's it. Events batch-send in the background every 5 seconds. The caller is ne
 
 ## Dashboard
 
-- **Overview** — 7-day trend + per-call-site breakdown
-- **Compare** — Side-by-side model latency / error / cost charts + regression feed
-- **Alerts** — Real-time threshold breach feed + configurable rules
+- **Overview** â€” 7-day trend + per-call-site breakdown
+- **Compare** â€” Side-by-side model latency / error / cost charts + regression feed
+- **Alerts** â€” Real-time threshold breach feed + configurable rules
 
 ## Next Steps
 
-- [Quick Start](quickstart.md) — full integration in 5 minutes
-- [Privacy](privacy.md) — how the Observer Principle works
-- [API Reference](api-reference.md) — all SDK parameters and REST endpoints
+- [Quick Start](quickstart.md) â€” full integration in 5 minutes
+- [Privacy](privacy.md) â€” how the Observer Principle works
+- [API Reference](api-reference.md) â€” all SDK parameters and REST endpoints
+
+

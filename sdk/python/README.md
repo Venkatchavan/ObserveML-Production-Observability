@@ -1,13 +1,13 @@
-# ObserveML Python SDK
+﻿# ObserveML Python SDK
 
 [![PyPI version](https://img.shields.io/pypi/v/observeml)](https://pypi.org/project/observeml/)
 [![Python versions](https://img.shields.io/pypi/pyversions/observeml)](https://pypi.org/project/observeml/)
 [![CI](https://github.com/Venkatchavan/ObserveML-Production-Observability/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Venkatchavan/ObserveML-Production-Observability/actions/workflows/ci-cd.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
 
-**v1.0.0 — Drop-in LLM observability. Captures metadata only — never prompt or response content.**
+**v1.0.3 â€” Drop-in LLM observability. Captures metadata only â€” never prompt or response content.**
 
-> **Observer Principle — non-negotiable:** `track()` has NO `prompt` or `response` parameter.
+> **Observer Principle â€” non-negotiable:** `track()` has NO `prompt` or `response` parameter.
 > It captures: model, latency, tokens, cost, error flags. Nothing else. Ever.
 > Content-leak tests run in CI on every PR and block merges if violated.
 
@@ -81,7 +81,7 @@ The hash enables deduplication without transmitting content.
 
 ## Performance
 
-- `track()` p99 < 1ms — fire-and-forget, non-blocking
+- `track()` p99 < 1ms â€” fire-and-forget, non-blocking
 - Background flush every `flush_interval_s` seconds (default 5 s, batch of 100)
 - Queue max 10,000 events; drops silently when full rather than blocking
 
@@ -90,15 +90,15 @@ The hash enables deduplication without transmitting content.
 ObserveML **never** transmits prompt or response content to any server.
 
 This is enforced at three levels:
-1. **Signature** — `track()` has no `prompt`/`response` parameters
-2. **Payload inspection** — `test_content_leak` asserts the queued dict contains no forbidden keys
-3. **CI gate** — tests run on every PR; a violation blocks merge
+1. **Signature** â€” `track()` has no `prompt`/`response` parameters
+2. **Payload inspection** â€” `test_content_leak` asserts the queued dict contains no forbidden keys
+3. **CI gate** â€” tests run on every PR; a violation blocks merge
 
 If you need content-level tracing, this is not the right tool by design.
 
 ## Alert thresholds
 
-ObserveML v1.0.0 includes server-side anomaly detection. Configure thresholds via the
+ObserveML v1.0.3 includes server-side anomaly detection. Configure thresholds via the
 dashboard or API to receive webhook notifications when metrics exceed defined limits:
 
 ```bash
@@ -111,7 +111,7 @@ curl -X POST https://api.observeml.io/v1/alerts \
 
 ## Supported Python versions
 
-`3.9`, `3.10`, `3.11`, `3.12` — tested in CI on every push.
+`3.9`, `3.10`, `3.11`, `3.12` â€” tested in CI on every push.
 
 ## Changelog
 
@@ -130,4 +130,5 @@ curl -X POST https://api.observeml.io/v1/alerts \
 ```
 
 Supported metrics: `avg_latency_ms`, `error_rate`, `cost_usd`.
+
 

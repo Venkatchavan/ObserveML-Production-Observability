@@ -1,5 +1,5 @@
-# PRD — ObserveML
-**v0.1.0 | 2026-03-11 | Sprint Prioritizer**
+﻿# PRD â€” ObserveML
+**v1.0.3 | 2026-03-12 | Sprint Prioritizer**
 
 ---
 
@@ -40,7 +40,7 @@ LLM applications fail in ways that traditional APM tools cannot detect: silent h
 ## 5. MoSCoW Requirements
 
 ### MUST HAVE (MVP)
-- M1: Python SDK — `observe(llm_call)` wrapper for OpenAI, Anthropic, Cohere
+- M1: Python SDK â€” `observe(llm_call)` wrapper for OpenAI, Anthropic, Cohere
 - M2: JavaScript/TypeScript SDK with identical API surface
 - M3: Latency, token count, cost, error rate metrics per call site
 - M4: Dashboard: real-time metrics + 7-day trend charts
@@ -65,19 +65,19 @@ LLM applications fail in ways that traditional APM tools cannot detect: silent h
 
 | Metric | Target (90 days) |
 |--------|-----------------|
-| SDK weekly downloads | ≥ 500 |
-| Dashboard DAU | ≥ 50 |
+| SDK weekly downloads | â‰¥ 500 |
+| Dashboard DAU | â‰¥ 50 |
 | P95 SDK overhead | < 2 ms |
-| 30-day retention | ≥ 40% |
+| 30-day retention | â‰¥ 40% |
 
 ---
 
 ## 7. Launch Gate Criteria
 
-- [ ] SDK overhead < 2ms P95 on Python 3.9–3.12 (CI enforced)
+- [ ] SDK overhead < 2ms P95 on Python 3.9â€“3.12 (CI enforced)
 - [ ] SDK matrix passing: Python 3.9/3.10/3.11/3.12, Node 18/20
 - [ ] No prompt/response content stored (privacy audit passed)
-- [ ] PyPI + npm packages published with correct semantic versions
+- [x] PyPI + npm packages published with correct semantic versions
 - [ ] Documentation: README install-in-5-lines verified by someone unfamiliar with codebase
 - [ ] 333-line law: no file > 333 lines
 - [ ] Vedantic review: are we measuring the right things, or just measurable things?
@@ -89,3 +89,5 @@ LLM applications fail in ways that traditional APM tools cannot detect: silent h
 - Python SDK: no dependencies beyond `httpx` (async) + `typing_extensions`
 - JS SDK: no dependencies beyond `node-fetch` (Node < 18 compat)
 - All metric ingestion idempotent (safe to retry)
+
+

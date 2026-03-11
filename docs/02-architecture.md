@@ -1,5 +1,5 @@
-# Architecture — ObserveML
-**v0.1.0 | 2026-03-11 | Backend Architect**
+﻿# Architecture â€” ObserveML
+**v1.0.3 | 2026-03-12 | Backend Architect**
 
 ---
 
@@ -7,44 +7,44 @@
 
 ```
 Developer's LLM App
-  │
-  │ observe(llm_call)   [< 2ms overhead — fire and forget]
-  ▼
-┌────────────────────────────────────────┐
-│  ObserveML Python SDK / JS SDK         │
-│  • Wraps LLM call                      │
-│  • Captures: latency, tokens, cost,    │
-│    error, model, call_site fingerprint │
-│  • Fire-and-forget async flush         │
-└─────────────────┬──────────────────────┘
-                  │ HTTPS batch (async, non-blocking)
-                  ▼
-       ┌──────────────────────┐
-       │  Ingest API          │
-       │  (FastAPI)           │
-       │  • Idempotent write  │
-       │  • Schema validation │
-       └──────┬───────────────┘
-              │
-    ┌─────────┴─────────┐
-    ▼                   ▼
-┌──────────┐     ┌───────────────┐
-│ClickHouse│     │  PostgreSQL   │
-│ • metrics│     │  • orgs       │
-│ • events │     │  • api keys   │
-│ • trends │     │  • alerts     │
-└──────────┘     └───────────────┘
-              │
-              ▼
-    ┌──────────────────┐
-    │  Dashboard API   │
-    │  (FastAPI)       │
-    └──────────────────┘
-              │
-              ▼
-    ┌──────────────────┐
-    │  React Dashboard │
-    └──────────────────┘
+  â”‚
+  â”‚ observe(llm_call)   [< 2ms overhead â€” fire and forget]
+  â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚  ObserveML Python SDK / JS SDK         â”‚
+â”‚  â€¢ Wraps LLM call                      â”‚
+â”‚  â€¢ Captures: latency, tokens, cost,    â”‚
+â”‚    error, model, call_site fingerprint â”‚
+â”‚  â€¢ Fire-and-forget async flush         â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                  â”‚ HTTPS batch (async, non-blocking)
+                  â–¼
+       â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+       â”‚  Ingest API          â”‚
+       â”‚  (FastAPI)           â”‚
+       â”‚  â€¢ Idempotent write  â”‚
+       â”‚  â€¢ Schema validation â”‚
+       â””â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+              â”‚
+    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+    â–¼                   â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ClickHouseâ”‚     â”‚  PostgreSQL   â”‚
+â”‚ â€¢ metricsâ”‚     â”‚  â€¢ orgs       â”‚
+â”‚ â€¢ events â”‚     â”‚  â€¢ api keys   â”‚
+â”‚ â€¢ trends â”‚     â”‚  â€¢ alerts     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜     â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+              â”‚
+              â–¼
+    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+    â”‚  Dashboard API   â”‚
+    â”‚  (FastAPI)       â”‚
+    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+              â”‚
+              â–¼
+    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+    â”‚  React Dashboard â”‚
+    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
@@ -96,13 +96,13 @@ Developer's LLM App
 
 ```
 observe(llm_call) budget: < 2ms
-  ├── Capture metadata:      ~0.1ms
-  ├── Enqueue to buffer:     ~0.1ms
-  └── Return to caller:      ~0.1ms
+  â”œâ”€â”€ Capture metadata:      ~0.1ms
+  â”œâ”€â”€ Enqueue to buffer:     ~0.1ms
+  â””â”€â”€ Return to caller:      ~0.1ms
 
 Async flush (background):
-  ├── Serialize batch:       ~0.5ms
-  └── HTTP POST (fire):      non-blocking
+  â”œâ”€â”€ Serialize batch:       ~0.5ms
+  â””â”€â”€ HTTP POST (fire):      non-blocking
 ```
 
 ---
@@ -117,7 +117,8 @@ Async flush (background):
 
 ## 8. 333-Line Law Compliance
 
-- `sdk/python/observe.py` — public API surface only
-- `sdk/python/_buffer.py` — async buffer + flush only
-- `api/ingest/router.py` — ingest validation + write only
-- `api/metrics/router.py` — aggregation queries only
+- `sdk/python/observe.py` â€” public API surface only
+- `sdk/python/_buffer.py` â€” async buffer + flush only
+- `api/ingest/router.py` â€” ingest validation + write only
+- `api/metrics/router.py` â€” aggregation queries only
+

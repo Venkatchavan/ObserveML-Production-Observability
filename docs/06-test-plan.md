@@ -1,15 +1,15 @@
-# Test Plan — ObserveML
-**v0.1.0 | 2026-03-11 | Senior QA Engineer**
+﻿# Test Plan â€” ObserveML
+**v1.0.3 | 2026-03-12 | Senior QA Engineer**
 
 ---
 
 ## 1. Test Strategy
 
-> *"Sakshi — does the SDK actually avoid capturing prompt content? Observe it, don't just assert you configured it that way."*
+> *"Sakshi â€” does the SDK actually avoid capturing prompt content? Observe it, don't just assert you configured it that way."*
 
 | Layer | Target Coverage | Tooling |
 |-------|----------------|---------|
-| Unit | ≥ 80% | pytest (backend), Jest (SDK-JS), pytest (SDK-Python) |
+| Unit | â‰¥ 80% | pytest (backend), Jest (SDK-JS), pytest (SDK-Python) |
 | Integration | Key paths | pytest + testcontainers (ClickHouse + PostgreSQL) |
 | SDK Overhead | Latency impact | pytest-benchmark |
 | Security | Content-leak | pytest + log inspection |
@@ -34,7 +34,7 @@
 
 | Scenario | Components | Pass Criteria |
 |----------|-----------|---------------|
-| SDK sends event → ClickHouse → dashboard query returns it | SDK + API + ClickHouse | End-to-end event visibility < 5s |
+| SDK sends event â†’ ClickHouse â†’ dashboard query returns it | SDK + API + ClickHouse | End-to-end event visibility < 5s |
 | Cross-org metrics isolation | API + ClickHouse | Org A cannot read Org B events |
 | API key rate limit (100 req/min) enforced | Rate limiter + API | 429 after 101st request within 1 min |
 | ClickHouse TTL (90-day) schema correct | ClickHouse DDL | TTL expression present in SHOW CREATE TABLE |
@@ -58,7 +58,7 @@
 
 | Flow | Pass Criteria |
 |------|---------------|
-| Create API key → send events → view dashboard | Metrics visible within 5s |
+| Create API key â†’ send events â†’ view dashboard | Metrics visible within 5s |
 
 ---
 
@@ -73,8 +73,9 @@
 
 ## 4. Launch Gate Criteria
 
-- [ ] Unit ≥ 80% (backend + both SDKs)
+- [ ] Unit â‰¥ 80% (backend + both SDKs)
 - [ ] SDK content-leak test passes (zero prompt/response in payloads)
 - [ ] Cross-org isolation test passes
 - [ ] SDK overhead p99 < 1ms
 - [ ] Playwright E2E passes in staging
+
