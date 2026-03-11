@@ -43,6 +43,8 @@ jobs:
           POSTGRES_DB: observeml_test
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -53,6 +55,11 @@ jobs:
         ports:
           - 8123:8123
           - 9000:9000
+        options: >-
+          --health-cmd "wget -qO- http://localhost:8123/ping || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/observeml_test
       CLICKHOUSE_HOST: localhost
