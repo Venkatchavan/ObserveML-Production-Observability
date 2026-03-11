@@ -1,0 +1,44 @@
+# OB-26: Caddy reverse proxy — TLS + custom domain for ObserveML production.
+# ⚠️ REQUIRES HUMAN REVIEW: replace observeml.io with your actual domain.
+# Deploy: copy to /etc/caddy/Caddyfile on the Fly.io-attached Caddy instance,
+#         or run a separate Caddy machine with `caddy run`.
+
+api.observeml.io {
+    # reason: Caddy auto-provisions Let's Encrypt TLS — no manual cert management
+    tls internal  # replace with ACME email: tls admin@observeml.io
+
+    reverse_proxy localhost:8000 {
+        header_up X-Forwarded-Proto https
+        header_up X-Real-IP {remote_host}
+    }
+
+    # Security headers — OWASP baseline
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        # Remove server fingerprint
+        -Server
+    }
+
+    # Block common scanner paths
+    @blocked path /.env /.git* /wp-admin /phpmyadmin
+    respond @blocked 404
+}
+
+app.observeml.io {
+    tls internal
+
+    reverse_proxy localhost:3000 {
+        header_up X-Forwarded-Proto https
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+        -Server
+    }
+}

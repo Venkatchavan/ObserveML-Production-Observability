@@ -1,0 +1,45 @@
+site_name: ObserveML
+site_description: Drop-in LLM observability — metadata only, never prompt content
+site_url: https://docs.observeml.io
+repo_url: https://github.com/theagency/observeml
+repo_name: theagency/observeml
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: deep purple
+      accent: light green
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Quick Start: quickstart.md
+  - Privacy: privacy.md
+  - API Reference: api-reference.md
+
+extra:
+  version:
+    provider: mike
+    default: stable
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - tables

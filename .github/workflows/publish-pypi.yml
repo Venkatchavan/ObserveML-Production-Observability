@@ -1,0 +1,65 @@
+# OB-14: Publish Python SDK to PyPI via OIDC Trusted Publisher (no long-lived tokens).
+# Trigger: push of a tag matching sdk/python/v* (e.g. sdk/python/v0.2.0)
+#
+# ⚠️ REQUIRES HUMAN REVIEW: Configure PyPI Trusted Publisher at
+#   https://pypi.org/manage/account/publishing/
+#   Publisher: GitHub Actions | owner: <org> | repo: observeml | workflow: publish-pypi.yml
+name: Publish Python SDK to PyPI
+
+on:
+  push:
+    tags:
+      - "sdk/python/v*"
+
+permissions:
+  id-token: write   # required for OIDC token request
+  contents: read
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: projects/Project_03_ObserveML/sdk/python
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install build deps
+        run: pip install build==1.2.2 twine==5.1.1
+
+      - name: Build sdist + wheel
+        run: python -m build
+
+      - name: Check distributions
+        run: twine check dist/*
+
+      - uses: actions/upload-artifact@v4.4.3
+        with:
+          name: pypi-dist
+          path: projects/Project_03_ObserveML/sdk/python/dist/
+
+  publish:
+    name: Publish to PyPI (OIDC)
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: pypi
+      url: https://pypi.org/project/observeml/
+
+    steps:
+      - uses: actions/download-artifact@v4.1.8
+        with:
+          name: pypi-dist
+          path: dist/
+
+      # reason: OIDC exchange — no API token stored in GitHub secrets
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          print-hash: true

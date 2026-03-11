@@ -1,0 +1,52 @@
+# OB-16: Fly.io deployment for ObserveML API (staging).
+# Deploy: flyctl deploy --config fly.toml
+# ⚠️ REQUIRES HUMAN REVIEW: run `flyctl launch` once to create the Fly app, then
+#   set secrets: flyctl secrets set DATABASE_URL=... CLICKHOUSE_HOST=... etc.
+
+app = "observeml-api"
+primary_region = "iad"   # US-East; change to region closest to your DB
+kill_signal = "SIGINT"
+kill_timeout = "5s"
+
+[build]
+  # reason: same Dockerfile used in docker-compose for dev parity
+  dockerfile = "projects/Project_03_ObserveML/api/Dockerfile"
+
+[env]
+  PORT = "8000"
+  OBSERVEML_ENV = "staging"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 500
+    soft_limit = 250
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+[checks]
+  [checks.health]
+    grace_period = "10s"
+    interval = "15s"
+    method = "GET"
+    path = "/health"
+    port = 8000
+    timeout = "5s"
+    type = "http"
+
+# reason: secrets injected at runtime via `flyctl secrets set` — never hardcoded
+# Required secrets:
+#   DATABASE_URL        — asyncpg+postgresql URL
+#   CLICKHOUSE_HOST     — managed ClickHouse hostname
+#   CLICKHOUSE_PASSWORD — ClickHouse password
+#   CLICKHOUSE_USER     — ClickHouse username (default: default)
+#   CLICKHOUSE_DATABASE — database name (default: default)

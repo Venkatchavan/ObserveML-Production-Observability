@@ -1,0 +1,48 @@
+# OB-15: Publish JS SDK to npm via OIDC (no long-lived npm tokens).
+# Trigger: push of a tag matching sdk/js/v* (e.g. sdk/js/v0.2.0)
+#
+# ⚠️ REQUIRES HUMAN REVIEW: Enable Provenance publishing in your npm org settings.
+#   npm docs: https://docs.npmjs.com/generating-provenance-statements
+name: Publish JS SDK to npm
+
+on:
+  push:
+    tags:
+      - "sdk/js/v*"
+
+permissions:
+  id-token: write   # required for npm OIDC provenance
+  contents: read
+
+jobs:
+  publish:
+    name: Build and publish to npm
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: projects/Project_03_ObserveML/sdk/javascript
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-node@v4.1.0
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      # reason: --provenance signs the package with OIDC token — no npm_TOKEN secret needed
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # reason: NPM_TOKEN is a granular access token (publish-only) set in repo secrets.
+          # OIDC provenance is layered on top for supply-chain attestation.
