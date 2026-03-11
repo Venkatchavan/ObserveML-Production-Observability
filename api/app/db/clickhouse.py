@@ -34,7 +34,7 @@ def ensure_table():
         ) ENGINE = MergeTree()
         PARTITION BY (org_id, toYYYYMMDD(ts))
         ORDER BY (org_id, call_site, ts)
-        TTL ts + INTERVAL 90 DAY
+        TTL toDateTime(ts) + INTERVAL 90 DAY
     """)
 
 
