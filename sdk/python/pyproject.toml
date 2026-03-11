@@ -1,11 +1,11 @@
-﻿[build-system]
+[build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "observeml"
 version = "1.0.3"
-description = "Drop-in LLM observability SDK â€” metadata only, never prompt content"
+description = "Drop-in LLM observability SDK -- metadata only, never prompt content"
 authors = [{ name = "Venkat Chavan", email = "venkat@observeml.io" }]
 readme = "README.md"
 license = { text = "MIT" }
@@ -38,4 +38,3 @@ include = ["observeml*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-

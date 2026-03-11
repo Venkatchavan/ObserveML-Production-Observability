@@ -1,4 +1,4 @@
-﻿# Test Plan â€” ObserveML
+# Test Plan â€” ObserveML
 **v1.0.3 | 2026-03-12 | Senior QA Engineer**
 
 ---

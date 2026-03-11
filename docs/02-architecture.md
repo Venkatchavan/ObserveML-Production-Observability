@@ -1,4 +1,4 @@
-﻿# Architecture â€” ObserveML
+# Architecture â€” ObserveML
 **v1.0.3 | 2026-03-12 | Backend Architect**
 
 ---

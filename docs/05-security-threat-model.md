@@ -1,4 +1,4 @@
-﻿# Security Threat Model â€” ObserveML
+# Security Threat Model â€” ObserveML
 **v1.0.3 | 2026-03-12 | Security Engineer**
 
 ---

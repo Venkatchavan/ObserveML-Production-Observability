@@ -1,4 +1,4 @@
-﻿# Database Schema â€” ObserveML
+# Database Schema â€” ObserveML
 **v1.0.3 | 2026-03-12 | Database Architect**
 
 ---
