@@ -146,7 +146,7 @@ async def test_anomaly_fires_alert(test_credentials):
     # Create a low threshold (50 ms) so any real event triggers it
     db = await _get_session()
     try:
-        rule_id = await _create_alert_rule(
+        await _create_alert_rule(
             db, org_id, "avg_latency_ms", threshold=50.0
         )
     finally:
