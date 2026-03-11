@@ -5,6 +5,7 @@ OB-08: SDK content-leak test — no prompt/response in transmitted payload
 These are Sprint 01 constitutional gates.
 Both must pass for DoD sign-off.
 """
+
 import inspect
 import time
 
@@ -16,6 +17,7 @@ from observeml.tracker import ObserveML, track, prompt_hash
 # ---------------------------------------------------------------------------
 # OB-08  Observer Principle — no prompt/response in SDK signature or payload
 # ---------------------------------------------------------------------------
+
 
 class TestObserverPrinciple:
     """Content-leak test: no prompt or response in SDK parameter list or payload."""
@@ -61,7 +63,9 @@ class TestObserverPrinciple:
         assert len(captured) == 1
         event = captured[0]
         assert "prompt" not in event, "Payload contains 'prompt' key — Observer Principle violated"
-        assert "response" not in event, "Payload contains 'response' key — Observer Principle violated"
+        assert "response" not in event, (
+            "Payload contains 'response' key — Observer Principle violated"
+        )
         assert "prompt_content" not in event
         assert "response_content" not in event
 
@@ -76,6 +80,7 @@ class TestObserverPrinciple:
 # ---------------------------------------------------------------------------
 # OB-07  SDK overhead — p99 < 1ms
 # ---------------------------------------------------------------------------
+
 
 class TestSDKOverhead:
     """track() must return in p99 < 1ms (non-blocking, queue-backed)."""
@@ -92,9 +97,7 @@ class TestSDKOverhead:
 
         samples.sort()
         p99 = samples[int(len(samples) * 0.99)]
-        assert p99 < 1.0, (
-            f"SDK overhead p99 = {p99:.4f}ms — exceeds 1ms constitutional limit"
-        )
+        assert p99 < 1.0, f"SDK overhead p99 = {p99:.4f}ms — exceeds 1ms constitutional limit"
 
     def test_track_returns_none(self):
         client = ObserveML(api_key="test-key", endpoint="http://localhost/v1/ingest")
@@ -106,6 +109,7 @@ class TestSDKOverhead:
 # Queue behaviour tests
 # ---------------------------------------------------------------------------
 
+
 class TestQueueBehavior:
     def test_full_queue_does_not_block(self):
         client = ObserveML(api_key="test-key", endpoint="http://localhost/v1/ingest")
@@ -116,6 +120,7 @@ class TestQueueBehavior:
 
     def test_configure_raises_without_init(self):
         import observeml
+
         # Reset singleton
         observeml.tracker._default = None
         with pytest.raises(RuntimeError, match="not configured"):

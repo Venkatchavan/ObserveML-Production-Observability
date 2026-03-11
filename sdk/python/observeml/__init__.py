@@ -3,6 +3,7 @@
 Observer Principle: track() captures metadata ONLY.
 No prompt or response content is ever transmitted.
 """
+
 import sys
 import types
 
@@ -23,18 +24,18 @@ class _Module(types.ModuleType):
     @property
     def _default(self):
         from observeml import tracker  # late import avoids circular
+
         return tracker._default
 
     @_default.setter
     def _default(self, value):
         from observeml import tracker
+
         tracker._default = value
 
 
 # Replace this module in sys.modules with the custom subclass so that
 # ``observeml._default`` behaves as a live, two-way proxy.
 _mod = _Module(__name__)
-_mod.__dict__.update(
-    {k: v for k, v in globals().items() if k not in ("_Module", "_mod")}
-)
+_mod.__dict__.update({k: v for k, v in globals().items() if k not in ("_Module", "_mod")})
 sys.modules[__name__] = _mod

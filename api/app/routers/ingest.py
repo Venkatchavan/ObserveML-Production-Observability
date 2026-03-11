@@ -1,4 +1,5 @@
 """Ingest router — OB-01: POST /v1/ingest with API key auth + rate limiting."""
+
 from datetime import datetime, timezone
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,10 +32,7 @@ async def ingest(
         )
 
     now_ts = datetime.now(timezone.utc)
-    events_data = [
-        {**event.model_dump(), "ts": now_ts}
-        for event in payload.events
-    ]
+    events_data = [{**event.model_dump(), "ts": now_ts} for event in payload.events]
     insert_events(org_id, events_data)
     # OB-11: check for anomalies in background after response is sent
     background_tasks.add_task(run_anomaly_check, org_id)

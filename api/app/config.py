@@ -2,9 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str = (
-        "postgresql+asyncpg://observeml:observeml@localhost:5432/observeml"
-    )
+    database_url: str = "postgresql+asyncpg://observeml:observeml@localhost:5432/observeml"
     clickhouse_host: str = "localhost"
     clickhouse_port: int = 9000
     clickhouse_database: str = "observeml"

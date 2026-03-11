@@ -5,6 +5,7 @@ Observer Principle:
   The SDK captures: model, latency, tokens, cost, error flags.
   Nothing else. Ever.
 """
+
 import hashlib
 import queue
 import threading
@@ -118,9 +119,7 @@ def track(
 ) -> None:
     """Module-level track() — requires configure() to be called first."""
     if _default is None:
-        raise RuntimeError(
-            "ObserveML not configured. Call observeml.configure(api_key=...) first."
-        )
+        raise RuntimeError("ObserveML not configured. Call observeml.configure(api_key=...) first.")
     _default.track(
         model=model,
         latency_ms=latency_ms,

@@ -4,6 +4,7 @@ ObserveML Pydantic models.
 Observer Principle: MetricEvent intentionally has NO prompt or response fields.
 Only metadata is transmitted: model, latency, tokens, cost, error.
 """
+
 from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -57,6 +58,7 @@ class TrendResponse(BaseModel):
 
 # ---------- Alert Rule models (OB-12) ----------
 
+
 class AlertRuleCreate(BaseModel):
     call_site: Optional[str] = None  # None = apply to all call sites
     metric: str  # avg_latency_ms | error_rate | cost_usd
@@ -85,6 +87,7 @@ class AlertFeedItem(BaseModel):
 
 
 # ---------- Comparison + Regression models (OB-21/22/23) ----------
+
 
 class ModelComparisonRow(BaseModel):
     model: str

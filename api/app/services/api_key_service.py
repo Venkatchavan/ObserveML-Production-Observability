@@ -1,4 +1,5 @@
 """API key validation — org_id always derived server-side from key hash."""
+
 import hashlib
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text

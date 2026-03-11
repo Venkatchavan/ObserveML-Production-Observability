@@ -1,4 +1,5 @@
 """OB-12: Alert dispatch — persists alert_fired row + SSRF-safe webhook delivery."""
+
 import ipaddress
 from typing import Optional
 from urllib.parse import urlparse

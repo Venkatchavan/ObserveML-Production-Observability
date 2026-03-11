@@ -1,4 +1,5 @@
 """OB-12: Alert rules CRUD and fired-alert feed endpoints."""
+
 from typing import List
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession

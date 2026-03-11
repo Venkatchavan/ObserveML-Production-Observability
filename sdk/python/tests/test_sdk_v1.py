@@ -3,6 +3,7 @@
 Covers configurable flush interval, module API, edge cases, and
 re-confirms all constitutional gates from Sprint 01.
 """
+
 import inspect
 import time
 
@@ -24,6 +25,7 @@ class TestConfigurableFlushInterval:
 
     def test_configure_with_custom_interval(self):
         import observeml
+
         observeml.configure(api_key="testkey-v1", flush_interval_s=2.0)
         assert observeml._default._flush_interval_s == 2.0
         # Reset to default for other tests
@@ -35,11 +37,13 @@ class TestModuleAPI:
 
     def test_configure_sets_singleton(self):
         import observeml
+
         observeml.configure(api_key="singleton-test")
         assert observeml._default is not None
 
     def test_track_without_configure_raises(self):
         import observeml as m
+
         original = m._default
         m._default = None
         try:
@@ -103,7 +107,9 @@ class TestEdgeCases:
         client = ObserveML(api_key="k", endpoint="http://localhost/v1/ingest")
         samples = [
             (lambda t0: (time.perf_counter() - t0) * 1000)(
-                (client.track(model="gpt-4o-mini", latency_ms=i) or time.perf_counter())  # noqa
+                (
+                    client.track(model="gpt-4o-mini", latency_ms=i) or time.perf_counter()  # noqa
+                )
             )
             for i in range(1000)
         ]

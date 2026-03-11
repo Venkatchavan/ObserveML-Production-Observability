@@ -1,4 +1,5 @@
 """ClickHouse client — metric_events table (OB-02)."""
+
 from typing import Any, Dict, List
 import clickhouse_connect
 from app.config import settings
@@ -40,10 +41,18 @@ def ensure_table():
 def insert_events(org_id: str, events: List[Dict[str, Any]]) -> None:
     rows = [
         [
-            e["event_id"], org_id, e["call_site"], e["model"],
-            e["latency_ms"], e["input_tokens"], e["output_tokens"],
-            e["cost_usd"], e["error"], e["error_code"],
-            e["prompt_hash"], e["ts"],
+            e["event_id"],
+            org_id,
+            e["call_site"],
+            e["model"],
+            e["latency_ms"],
+            e["input_tokens"],
+            e["output_tokens"],
+            e["cost_usd"],
+            e["error"],
+            e["error_code"],
+            e["prompt_hash"],
+            e["ts"],
         ]
         for e in events
     ]
@@ -51,9 +60,18 @@ def insert_events(org_id: str, events: List[Dict[str, Any]]) -> None:
         "metric_events",
         rows,
         column_names=[
-            "event_id", "org_id", "call_site", "model",
-            "latency_ms", "input_tokens", "output_tokens",
-            "cost_usd", "error", "error_code", "prompt_hash", "ts",
+            "event_id",
+            "org_id",
+            "call_site",
+            "model",
+            "latency_ms",
+            "input_tokens",
+            "output_tokens",
+            "cost_usd",
+            "error",
+            "error_code",
+            "prompt_hash",
+            "ts",
         ],
     )
 
@@ -64,7 +82,8 @@ def query_metrics(org_id: str, call_site: str = None) -> List[Dict]:
     if call_site:
         where += " AND call_site = %(call_site)s"
         params["call_site"] = call_site
-    result = _client().query(f"""
+    result = _client().query(
+        f"""
         SELECT
             call_site,
             model,
@@ -77,13 +96,16 @@ def query_metrics(org_id: str, call_site: str = None) -> List[Dict]:
         GROUP BY call_site, model
         ORDER BY total_calls DESC
         LIMIT 100
-    """, parameters=params)
+    """,
+        parameters=params,
+    )
     return [dict(zip(result.column_names, row)) for row in result.result_rows]
 
 
 def query_window_stats(org_id: str, window_minutes: int = 10) -> List[Dict]:
     """OB-11: Aggregate metrics over the last window_minutes for anomaly detection."""
-    result = _client().query("""
+    result = _client().query(
+        """
         SELECT
             call_site,
             avg(latency_ms)           AS avg_latency_ms,
@@ -93,7 +115,9 @@ def query_window_stats(org_id: str, window_minutes: int = 10) -> List[Dict]:
         WHERE org_id = %(org_id)s
           AND ts >= now() - INTERVAL %(window)s MINUTE
         GROUP BY call_site
-    """, parameters={"org_id": org_id, "window": window_minutes})
+    """,
+        parameters={"org_id": org_id, "window": window_minutes},
+    )
     return [dict(zip(result.column_names, row)) for row in result.result_rows]
 
 
@@ -103,7 +127,8 @@ def query_trend(org_id: str, call_site: str = None) -> List[Dict]:
     if call_site:
         where += " AND call_site = %(call_site)s"
         params["call_site"] = call_site
-    result = _client().query(f"""
+    result = _client().query(
+        f"""
         SELECT
             toStartOfHour(ts)  AS ts,
             avg(latency_ms)    AS avg_latency_ms,
@@ -112,13 +137,16 @@ def query_trend(org_id: str, call_site: str = None) -> List[Dict]:
         {where}
         GROUP BY ts
         ORDER BY ts ASC
-    """, parameters=params)
+    """,
+        parameters=params,
+    )
     return [dict(zip(result.column_names, row)) for row in result.result_rows]
 
 
 def query_model_comparison(org_id: str) -> List[Dict]:
     """OB-21: Aggregate metrics by model for side-by-side comparison (last 7 days)."""
-    result = _client().query("""
+    result = _client().query(
+        """
         SELECT
             model,
             avg(latency_ms)           AS avg_latency_ms,
@@ -132,7 +160,9 @@ def query_model_comparison(org_id: str) -> List[Dict]:
           AND ts >= subtractDays(now(), 7)
         GROUP BY model
         ORDER BY total_calls DESC
-    """, parameters={"org_id": org_id})
+    """,
+        parameters={"org_id": org_id},
+    )
     return [dict(zip(result.column_names, row)) for row in result.result_rows]
 
 
@@ -141,7 +171,8 @@ def query_regression_windows(org_id: str, window_hours: int = 24) -> Dict[str, D
     client = _client()
 
     def _fetch(start_h: int, end_h: int) -> List[Dict]:
-        r = client.query("""
+        r = client.query(
+            """
             SELECT
                 call_site,
                 avg(latency_ms)             AS lat_mean,
@@ -156,7 +187,9 @@ def query_regression_windows(org_id: str, window_hours: int = 24) -> Dict[str, D
               AND ts >= subtractHours(now(), %(end_h)s)
               AND ts < subtractHours(now(), %(start_h)s)
             GROUP BY call_site
-        """, parameters={"org_id": org_id, "start_h": start_h, "end_h": end_h})
+        """,
+            parameters={"org_id": org_id, "start_h": start_h, "end_h": end_h},
+        )
         return [dict(zip(r.column_names, row)) for row in r.result_rows]
 
     windows: Dict[str, Any] = {}
@@ -169,7 +202,8 @@ def query_regression_windows(org_id: str, window_hours: int = 24) -> Dict[str, D
 
 def query_cost_breakdown(org_id: str, days: int = 7) -> List[Dict]:
     """OB-23: Daily cost per model for the last N days."""
-    result = _client().query("""
+    result = _client().query(
+        """
         SELECT
             model,
             toString(toDate(ts))   AS day,
@@ -181,5 +215,7 @@ def query_cost_breakdown(org_id: str, days: int = 7) -> List[Dict]:
           AND ts >= subtractDays(now(), %(days)s)
         GROUP BY model, day
         ORDER BY day DESC, total_cost_usd DESC
-    """, parameters={"org_id": org_id, "days": days})
+    """,
+        parameters={"org_id": org_id, "days": days},
+    )
     return [dict(zip(result.column_names, row)) for row in result.result_rows]

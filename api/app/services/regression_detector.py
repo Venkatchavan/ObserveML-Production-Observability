@@ -1,4 +1,5 @@
 """OB-22: Regression detection — Welch's z-test, no external stat libraries."""
+
 import math
 from typing import Dict, List
 
@@ -47,23 +48,25 @@ def detect_regressions(org_id: str, window_hours: int = 24) -> List[Dict]:
             base_mean = float(base.get(mean_key, 0.0))
             base_std = float(base.get(std_key, 0.0))
 
-            se = math.sqrt((cur_std ** 2 / cur_n) + (base_std ** 2 / base_n))
+            se = math.sqrt((cur_std**2 / cur_n) + (base_std**2 / base_n))
             if se == 0:
                 continue
 
             z = (cur_mean - base_mean) / se
             p_value = _z_to_p(z)
 
-            results.append({
-                "call_site": call_site,
-                "metric": metric_label,
-                "current_mean": cur_mean,
-                "baseline_mean": base_mean,
-                "z_score": z,
-                "p_value": p_value,
-                # regression = statistically worse performance
-                "is_regression": p_value < _P_THRESHOLD and cur_mean > base_mean,
-            })
+            results.append(
+                {
+                    "call_site": call_site,
+                    "metric": metric_label,
+                    "current_mean": cur_mean,
+                    "baseline_mean": base_mean,
+                    "z_score": z,
+                    "p_value": p_value,
+                    # regression = statistically worse performance
+                    "is_regression": p_value < _P_THRESHOLD and cur_mean > base_mean,
+                }
+            )
 
     # Sort regressions first, then by p-value ascending
     results.sort(key=lambda r: (not r["is_regression"], r["p_value"]))

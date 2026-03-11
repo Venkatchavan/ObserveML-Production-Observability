@@ -7,6 +7,7 @@ Environment variables (with defaults matching docker-compose.yml):
   DATABASE_URL, CLICKHOUSE_HOST, CLICKHOUSE_PORT, CLICKHOUSE_USER,
   CLICKHOUSE_PASSWORD, CLICKHOUSE_DATABASE
 """
+
 import os
 import pytest
 import httpx
@@ -17,7 +18,9 @@ from sqlalchemy import text
 
 # ---- helpers ---------------------------------------------------------------
 
-DB_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://observeml:observeml@localhost:5432/observeml")
+DB_URL = os.getenv(
+    "DATABASE_URL", "postgresql+asyncpg://observeml:observeml@localhost:5432/observeml"
+)
 
 
 async def _get_session() -> AsyncSession:
@@ -47,9 +50,7 @@ async def _create_org_and_key(db: AsyncSession) -> tuple[str, str]:
     return org_id, raw_key
 
 
-async def _create_alert_rule(
-    db: AsyncSession, org_id: str, metric: str, threshold: float
-) -> str:
+async def _create_alert_rule(db: AsyncSession, org_id: str, metric: str, threshold: float) -> str:
     result = await db.execute(
         text(
             "INSERT INTO alert_rules (org_id, metric, threshold) "
@@ -85,6 +86,7 @@ async def test_credentials():
 
 
 # ---- tests -----------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_ingest_returns_accepted(test_credentials):
@@ -132,9 +134,7 @@ async def test_alert_rule_crud(test_credentials):
         assert any(r["id"] == rule_id for r in list_resp.json())
 
         # Delete
-        del_resp = await client.delete(
-            f"/v1/alerts/{rule_id}", headers={"x-api-key": raw_key}
-        )
+        del_resp = await client.delete(f"/v1/alerts/{rule_id}", headers={"x-api-key": raw_key})
         assert del_resp.status_code == 204
 
 
@@ -146,9 +146,7 @@ async def test_anomaly_fires_alert(test_credentials):
     # Create a low threshold (50 ms) so any real event triggers it
     db = await _get_session()
     try:
-        await _create_alert_rule(
-            db, org_id, "avg_latency_ms", threshold=50.0
-        )
+        await _create_alert_rule(db, org_id, "avg_latency_ms", threshold=50.0)
     finally:
         await db.close()
 
@@ -158,8 +156,7 @@ async def test_anomaly_fires_alert(test_credentials):
             "/v1/ingest",
             json={
                 "events": [
-                    {"model": "gpt-4o", "latency_ms": 5000, "call_site": ""}
-                    for _ in range(5)
+                    {"model": "gpt-4o", "latency_ms": 5000, "call_site": ""} for _ in range(5)
                 ]
             },
             headers={"x-api-key": raw_key},
@@ -276,9 +273,7 @@ async def test_regression_stable_data_produces_no_regression(test_credentials):
     assert reg_resp.status_code == 200
     findings = reg_resp.json()
     regressions = [f for f in findings if f.get("is_regression") is True]
-    assert regressions == [], (
-        f"Expected no regressions for stable data, found: {regressions}"
-    )
+    assert regressions == [], f"Expected no regressions for stable data, found: {regressions}"
 
 
 @pytest.mark.asyncio
@@ -286,9 +281,7 @@ async def test_compare_models_returns_list(test_credentials):
     """GET /v1/compare/models must return 200 with a well-formed list."""
     _, raw_key = test_credentials
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
-        resp = await client.get(
-            "/v1/compare/models", headers={"x-api-key": raw_key}
-        )
+        resp = await client.get("/v1/compare/models", headers={"x-api-key": raw_key})
     assert resp.status_code == 200
     body = resp.json()
     assert isinstance(body, list)

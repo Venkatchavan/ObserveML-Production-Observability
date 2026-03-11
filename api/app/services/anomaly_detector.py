@@ -1,4 +1,5 @@
 """OB-11: Sliding-window anomaly detection — evaluated after each ingest batch."""
+
 from app.db.clickhouse import query_window_stats
 from app.db.postgres import AsyncSessionLocal
 from app.services.alert_dispatcher import dispatch_alert
