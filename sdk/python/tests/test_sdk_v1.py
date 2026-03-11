@@ -4,13 +4,11 @@ Covers configurable flush interval, module API, edge cases, and
 re-confirms all constitutional gates from Sprint 01.
 """
 import inspect
-import queue as stdlib_queue
 import time
-import threading
 
 import pytest
 
-from observeml.tracker import ObserveML, configure, track, prompt_hash, _FLUSH_INTERVAL_S
+from observeml.tracker import ObserveML, prompt_hash, _FLUSH_INTERVAL_S
 
 
 class TestConfigurableFlushInterval:

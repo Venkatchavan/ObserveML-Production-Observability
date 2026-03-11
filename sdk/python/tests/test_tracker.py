@@ -6,12 +6,11 @@ These are Sprint 01 constitutional gates.
 Both must pass for DoD sign-off.
 """
 import inspect
-import queue as stdlib_queue
 import time
 
 import pytest
 
-from observeml.tracker import ObserveML, track, configure, prompt_hash
+from observeml.tracker import ObserveML, track, prompt_hash
 
 
 # ---------------------------------------------------------------------------

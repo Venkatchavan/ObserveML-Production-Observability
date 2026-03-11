@@ -103,7 +103,7 @@ class RegressionFinding(BaseModel):
     baseline_mean: float
     z_score: float
     p_value: float
-    is_regression: bool       # True if p<0.05 AND current > baseline
+    is_regression: bool  # True if p<0.05 AND current > baseline
 
 
 class CostRow(BaseModel):

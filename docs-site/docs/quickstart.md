@@ -8,7 +8,7 @@ Sign up at [app.observeml.io](https://app.observeml.io) and create your first AP
 
 === "Python"
     ```bash
-    pip install observeml==1.0.1
+    pip install observeml==1.0.2
     ```
 
 === "TypeScript / npm"

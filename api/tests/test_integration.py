@@ -11,7 +11,6 @@ import os
 import pytest
 import httpx
 import asyncio
-from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text

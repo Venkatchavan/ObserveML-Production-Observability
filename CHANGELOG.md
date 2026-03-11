@@ -5,6 +5,28 @@ Format: [Semantic Versioning](https://semver.org). Dates are UTC.
 
 ---
 
+## [1.0.2] — 2026-03-12 (Security + Lint full-pass)
+
+### Fixed
+
+- **CI — Lint Python: ruff F401** — removed all unused imports across Python test files:
+  - `sdk/python/tests/test_tracker.py`: removed `import queue as stdlib_queue`, `configure`
+  - `sdk/python/tests/test_sdk_v1.py`: removed `import queue as stdlib_queue`, `import threading`,
+    `configure`, `track` (all only used via `observeml.*` module API in those tests)
+  - `api/tests/test_integration.py`: removed `from datetime import datetime, timezone` (unused)
+- **CI — Lint Python: ruff format** — normalized inline comment spacing in
+  `api/app/models/events.py` (`is_regression: bool  # …` — Black-style 2-space rule)
+- **CI — Security Scan Python: starlette CVEs** — added explicit `starlette>=0.49.1` to
+  `api/requirements.txt` and relaxed `fastapi` to `>=0.115.5` so pip resolves a
+  starlette version that patches CVE-2025-54121 (fix: 0.47.2) and CVE-2025-62727 (fix: 0.49.1)
+
+### Added
+
+- **LICENSE** — MIT License, Copyright © 2026 Venkat Chavan
+- **pyproject.toml** — updated SDK author from "The Agency" to "Venkat Chavan"
+
+---
+
 ## [1.0.1] — 2026-03-11 (CI / packaging fix)
 
 ### Fixed

@@ -1,6 +1,6 @@
 # ObserveML
 
-**v1.0.1 — Drop-in LLM observability for production AI applications.**
+**v1.0.2 — Drop-in LLM observability for production AI applications.**
 
 ObserveML tracks what matters — latency, tokens, cost, error rates — without ever
 touching prompt or response content.

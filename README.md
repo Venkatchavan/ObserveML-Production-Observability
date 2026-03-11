@@ -1,7 +1,7 @@
 # ObserveML — Production Observability for LLM Apps
 
 > Project 03 · The Agency AGI · NEXUS-Micro Deployment  
-> **Version: v1.0.0 — 2026-03-11 — Sprint 3 (Production)**
+> **Version: v1.0.2 — 2026-03-12 — Sprint 3 (Production)**
 >
 > *"Prajnanam Brahma" — Consciousness is Brahman. (Aitareya Upanishad 3.3)*  
 > *Your LLM app is not conscious — but it should be observable. ObserveML gives it awareness of itself.*
@@ -137,4 +137,4 @@ full integration walkthrough.
 
 ---
 
-*The Agency AGI · ObserveML v1.0.0 · 2026-03-11 · [GitHub](https://github.com/Venkatchavan/ObserveML-Production-Observability)*
+*Copyright © 2026 Venkat Chavan · Licensed under the [MIT License](LICENSE) · ObserveML v1.0.2 · [GitHub](https://github.com/Venkatchavan/ObserveML-Production-Observability)*
