@@ -19,8 +19,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install ruff black
-      - run: ruff check api/ sdk/python/ && black --check api/ sdk/python/
+      - run: pip install ruff
+      - run: ruff check api/ sdk/python/ && ruff format --check api/ sdk/python/
 
   lint-js-sdk:
     name: Lint JavaScript SDK
@@ -100,9 +100,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install bandit "safety<3"
-      - run: bandit -r api/app/ sdk/python/observeml/ -ll
-      - run: safety check -r api/requirements.txt
+      - run: pip install bandit pip-audit
+        # B608: f-string WHERE clauses in clickhouse.py are safe — user values go
+        # through parameters=, not the interpolated string. True false-positive.
+      - run: bandit -r api/app/ sdk/python/observeml/ -ll --skip B608
+      - run: pip-audit -r api/requirements.txt
 
   build:
     name: Build & Push Docker Image

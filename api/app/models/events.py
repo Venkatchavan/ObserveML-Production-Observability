@@ -59,7 +59,7 @@ class TrendResponse(BaseModel):
 
 class AlertRuleCreate(BaseModel):
     call_site: Optional[str] = None  # None = apply to all call sites
-    metric: str                       # avg_latency_ms | error_rate | cost_usd
+    metric: str  # avg_latency_ms | error_rate | cost_usd
     threshold: float
     webhook_url: Optional[str] = None
 
@@ -98,7 +98,7 @@ class ModelComparisonRow(BaseModel):
 
 class RegressionFinding(BaseModel):
     call_site: str
-    metric: str               # latency_ms | error_rate | cost_usd
+    metric: str  # latency_ms | error_rate | cost_usd
     current_mean: float
     baseline_mean: float
     z_score: float
