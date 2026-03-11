@@ -1,26 +1,46 @@
-"""OB-19: Integration test — events → anomaly detection → alert fired.
+"""OB-19: Integration tests — FastAPI app via ASGI transport (no live server).
 
-Requires a running PostgreSQL and ClickHouse (use docker-compose for local dev).
-Run with: pytest api/tests/test_integration.py -v
+Uses httpx.ASGITransport so all requests go in-process through the FastAPI app.
+PostgreSQL and ClickHouse services must be reachable (provided by CI docker
+services or local docker-compose).
 
 Environment variables (with defaults matching docker-compose.yml):
   DATABASE_URL, CLICKHOUSE_HOST, CLICKHOUSE_PORT, CLICKHOUSE_USER,
   CLICKHOUSE_PASSWORD, CLICKHOUSE_DATABASE
 """
 
-import os
-import pytest
-import httpx
 import asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import text
+import hashlib
+import os
+import uuid
 
-# ---- helpers ---------------------------------------------------------------
+import httpx
+import pytest
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.db.clickhouse import ensure_table
+from app.db.postgres import init_db
+from app.main import app
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 DB_URL = os.getenv(
-    "DATABASE_URL", "postgresql+asyncpg://observeml:observeml@localhost:5432/observeml"
+    "DATABASE_URL",
+    "postgresql+asyncpg://observeml:observeml@localhost:5432/observeml",
 )
+
+
+def _make_client() -> httpx.AsyncClient:
+    """Return an AsyncClient that talks directly to the ASGI app — no TCP."""
+    return httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+        timeout=10.0,
+    )
 
 
 async def _get_session() -> AsyncSession:
@@ -30,14 +50,9 @@ async def _get_session() -> AsyncSession:
 
 
 async def _create_org_and_key(db: AsyncSession) -> tuple[str, str]:
-    """Seed: insert a test org + api_key. Returns (org_id, raw_key_hash)."""
-    import hashlib
-    import uuid
-
     org_id = str(uuid.uuid4())
     raw_key = f"test-{uuid.uuid4().hex}"
     key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
-
     await db.execute(
         text("INSERT INTO organizations (id, name) VALUES (:id, :name)"),
         {"id": org_id, "name": "integration-test-org"},
@@ -62,21 +77,21 @@ async def _create_alert_rule(db: AsyncSession, org_id: str, metric: str, thresho
     return str(result.fetchone()[0])
 
 
-# ---- fixtures --------------------------------------------------------------
-
-BASE_URL = os.getenv("OBSERVEML_API_URL", "http://localhost:8000")
-
-
-@pytest.fixture(scope="module")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="module")
-async def test_credentials():
-    """Create a fresh org + API key for the test module."""
+async def db_init():
+    """Create all DB tables once for the whole test module."""
+    await init_db()
+    ensure_table()
+
+
+@pytest.fixture(scope="module")
+async def test_credentials(db_init):
+    """Seed a fresh org + API key; shared across the module."""
     db = await _get_session()
     try:
         org_id, raw_key = await _create_org_and_key(db)
@@ -85,14 +100,15 @@ async def test_credentials():
         await db.close()
 
 
-# ---- tests -----------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_ingest_returns_accepted(test_credentials):
-    """POST /v1/ingest with valid key returns accepted count."""
+    """POST /v1/ingest with a valid key returns accepted count."""
     _, raw_key = test_credentials
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
+    async with _make_client() as client:
         resp = await client.post(
             "/v1/ingest",
             json={
@@ -114,12 +130,21 @@ async def test_ingest_returns_accepted(test_credentials):
     assert resp.json()["rejected"] == 0
 
 
-@pytest.mark.asyncio
+async def test_ingest_rejects_invalid_key():
+    """POST /v1/ingest with a bad API key must return 401."""
+    async with _make_client() as client:
+        resp = await client.post(
+            "/v1/ingest",
+            json={"events": [{"model": "gpt-4o", "latency_ms": 100}]},
+            headers={"x-api-key": "totally-invalid-key"},
+        )
+    assert resp.status_code == 401
+
+
 async def test_alert_rule_crud(test_credentials):
-    """Create, fetch, and delete an alert rule via the API."""
+    """Create, list, and delete an alert rule via the API."""
     _, raw_key = test_credentials
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
-        # Create
+    async with _make_client() as client:
         create_resp = await client.post(
             "/v1/alerts",
             json={"metric": "avg_latency_ms", "threshold": 1000.0},
@@ -128,30 +153,25 @@ async def test_alert_rule_crud(test_credentials):
         assert create_resp.status_code == 201
         rule_id = create_resp.json()["id"]
 
-        # List
         list_resp = await client.get("/v1/alerts", headers={"x-api-key": raw_key})
         assert list_resp.status_code == 200
         assert any(r["id"] == rule_id for r in list_resp.json())
 
-        # Delete
         del_resp = await client.delete(f"/v1/alerts/{rule_id}", headers={"x-api-key": raw_key})
         assert del_resp.status_code == 204
 
 
-@pytest.mark.asyncio
 async def test_anomaly_fires_alert(test_credentials):
-    """Full flow: ingest high-latency events → anomaly check → alert_fired row created."""
+    """Full flow: ingest high-latency events -> anomaly check -> alert_fired row."""
     org_id, raw_key = test_credentials
 
-    # Create a low threshold (50 ms) so any real event triggers it
     db = await _get_session()
     try:
         await _create_alert_rule(db, org_id, "avg_latency_ms", threshold=50.0)
     finally:
         await db.close()
 
-    # Ingest events with latency far above threshold
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
+    async with _make_client() as client:
         resp = await client.post(
             "/v1/ingest",
             json={
@@ -163,10 +183,8 @@ async def test_anomaly_fires_alert(test_credentials):
         )
     assert resp.status_code == 200
 
-    # Wait briefly for background anomaly task to complete
     await asyncio.sleep(2)
 
-    # Verify alert_fired row exists
     db = await _get_session()
     try:
         result = await db.execute(
@@ -183,11 +201,10 @@ async def test_anomaly_fires_alert(test_credentials):
     assert count >= 1, "Expected at least one alert_fired row after threshold breach"
 
 
-@pytest.mark.asyncio
 async def test_alert_feed_returns_fired_alert(test_credentials):
-    """GET /v1/alerts/feed must include the alert from the previous test."""
+    """GET /v1/alerts/feed must include the alert from test_anomaly_fires_alert."""
     _, raw_key = test_credentials
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
+    async with _make_client() as client:
         resp = await client.get("/v1/alerts/feed", headers={"x-api-key": raw_key})
     assert resp.status_code == 200
     feed = resp.json()
@@ -195,26 +212,10 @@ async def test_alert_feed_returns_fired_alert(test_credentials):
     assert any(item["metric"] == "avg_latency_ms" for item in feed)
 
 
-@pytest.mark.asyncio
-async def test_ingest_rejects_invalid_key():
-    """POST /v1/ingest with a bad API key must return 401."""
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
-        resp = await client.post(
-            "/v1/ingest",
-            json={"events": [{"model": "gpt-4o", "latency_ms": 100}]},
-            headers={"x-api-key": "totally-invalid-key"},
-        )
-    assert resp.status_code == 401
-
-
-# ---- OB-29: Regression endpoint E2E tests ---------------------------------
-
-
-@pytest.mark.asyncio
 async def test_regression_endpoint_returns_list(test_credentials):
     """GET /v1/compare/regression must return HTTP 200 with a JSON array."""
     _, raw_key = test_credentials
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
+    async with _make_client() as client:
         resp = await client.get(
             "/v1/compare/regression",
             params={"window_hours": 24},
@@ -222,7 +223,7 @@ async def test_regression_endpoint_returns_list(test_credentials):
         )
     assert resp.status_code == 200
     body = resp.json()
-    assert isinstance(body, list), "Expected a JSON array"
+    assert isinstance(body, list)
     if body:
         first = body[0]
         assert "call_site" in first
@@ -231,22 +232,13 @@ async def test_regression_endpoint_returns_list(test_credentials):
         assert isinstance(first["is_regression"], bool)
 
 
-@pytest.mark.asyncio
 async def test_regression_stable_data_produces_no_regression(test_credentials):
-    """Ingest low-variance uniform latencies; regression endpoint should
-    report no regressions (all is_regression == False).
-
-    This is a best-effort test — if the data window is insufficient for
-    Welch's z-test, the endpoint still returns 200 with an empty or stable list.
-    """
+    """Ingest stable latencies; regression endpoint should report no regressions."""
     _, raw_key = test_credentials
-    stable_latency = 200
-
-    # Ingest 20 identical calls to saturate both comparison windows
     events = [
         {
             "model": "gpt-3.5-turbo",
-            "latency_ms": stable_latency,
+            "latency_ms": 200,
             "input_tokens": 40,
             "output_tokens": 20,
             "cost_usd": 0.0002,
@@ -254,7 +246,7 @@ async def test_regression_stable_data_produces_no_regression(test_credentials):
         }
         for _ in range(20)
     ]
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
+    async with _make_client() as client:
         ingest_resp = await client.post(
             "/v1/ingest",
             json={"events": events},
@@ -262,7 +254,6 @@ async def test_regression_stable_data_produces_no_regression(test_credentials):
         )
         assert ingest_resp.status_code == 200
 
-        # Short wait to allow ClickHouse eventual consistency
         await asyncio.sleep(1)
 
         reg_resp = await client.get(
@@ -273,14 +264,13 @@ async def test_regression_stable_data_produces_no_regression(test_credentials):
     assert reg_resp.status_code == 200
     findings = reg_resp.json()
     regressions = [f for f in findings if f.get("is_regression") is True]
-    assert regressions == [], f"Expected no regressions for stable data, found: {regressions}"
+    assert regressions == [], f"Unexpected regressions for stable data: {regressions}"
 
 
-@pytest.mark.asyncio
 async def test_compare_models_returns_list(test_credentials):
     """GET /v1/compare/models must return 200 with a well-formed list."""
     _, raw_key = test_credentials
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
+    async with _make_client() as client:
         resp = await client.get("/v1/compare/models", headers={"x-api-key": raw_key})
     assert resp.status_code == 200
     body = resp.json()
@@ -293,11 +283,10 @@ async def test_compare_models_returns_list(test_credentials):
         assert "total_cost_usd" in row
 
 
-@pytest.mark.asyncio
 async def test_compare_cost_returns_list(test_credentials):
     """GET /v1/compare/cost must return 200 with day-level cost rows."""
     _, raw_key = test_credentials
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
+    async with _make_client() as client:
         resp = await client.get(
             "/v1/compare/cost",
             params={"days": 7},

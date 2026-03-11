@@ -14,3 +14,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "*/tests/*" = ["F811"]  # allow test re-definitions
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
