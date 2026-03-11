@@ -29,7 +29,8 @@ async def _get_session() -> AsyncSession:
 
 async def _create_org_and_key(db: AsyncSession) -> tuple[str, str]:
     """Seed: insert a test org + api_key. Returns (org_id, raw_key_hash)."""
-    import hashlib, uuid
+    import hashlib
+    import uuid
 
     org_id = str(uuid.uuid4())
     raw_key = f"test-{uuid.uuid4().hex}"

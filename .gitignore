@@ -26,12 +26,9 @@ coverage.xml
 
 # JavaScript / Node
 node_modules/
-dist/
 *.js.map
-*.d.ts
 .npm/
 .eslintcache
-package-lock.json
 
 # IDE / Editor
 .vscode/
