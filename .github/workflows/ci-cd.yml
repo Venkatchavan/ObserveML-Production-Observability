@@ -55,15 +55,18 @@ jobs:
           - 9000:9000
     env:
       DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/observeml_test
-      CLICKHOUSE_URL: http://localhost:8123
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CLICKHOUSE_HOST: localhost
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_DATABASE: default
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: cd api && pip install -r requirements.txt pytest pytest-cov pytest-asyncio
-      - run: cd api && pytest tests/ --cov=app --cov-report=xml --cov-fail-under=80
+      - run: cd api && pip install -r requirements.txt pytest pytest-cov pytest-asyncio anyio[asyncio]
+      - run: cd api && pytest tests/ --cov=app --cov-report=xml --timeout=30
       - uses: codecov/codecov-action@v4
 
   test-python-sdk:

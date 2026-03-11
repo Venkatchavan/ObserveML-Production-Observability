@@ -183,7 +183,7 @@ async def test_anomaly_fires_alert(test_credentials):
         )
     assert resp.status_code == 200
 
-    await asyncio.sleep(2)
+    await asyncio.sleep(0.2)  # background task runs in-process; 0.2s is sufficient
 
     db = await _get_session()
     try:
@@ -254,7 +254,7 @@ async def test_regression_stable_data_produces_no_regression(test_credentials):
         )
         assert ingest_resp.status_code == 200
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)  # ClickHouse write is synchronous via clickhouse-connect
 
         reg_resp = await client.get(
             "/v1/compare/regression",
