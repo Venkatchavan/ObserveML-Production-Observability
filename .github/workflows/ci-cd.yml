@@ -9,6 +9,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/observeml-api
+  # IMAGE_NAME is lowercased in the build job; ghcr.io requires lowercase tags
 
 jobs:
   lint-python:
@@ -131,6 +132,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+      - name: Set lowercase image name
+        run: echo "IMAGE_LC=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -140,7 +143,7 @@ jobs:
         with:
           context: ./api
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: ${{ env.IMAGE_LC }}:${{ github.sha }}
 
   publish-python-sdk:
     name: Publish Python SDK to PyPI
