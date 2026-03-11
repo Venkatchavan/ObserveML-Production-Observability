@@ -5,6 +5,32 @@ Format: [Semantic Versioning](https://semver.org). Dates are UTC.
 
 ---
 
+## [1.0.1] — 2026-03-11 (CI / packaging fix)
+
+### Fixed
+
+- **`observeml._default` proxy** — `sdk/python/observeml/__init__.py` now replaces itself
+  with a `types.ModuleType` subclass so `observeml._default` is readable and writable
+  at the package level; fixes 3 `test_sdk_v1.py` failures (`AttributeError`)
+- **JS SDK timer leak** — call `.unref()` on the `setInterval` timer in `tracker.ts`
+  so jest no longer force-exits with a stale-timer warning
+- **CI — `npm ci` fails** — removed `package-lock.json` from `.gitignore`; committed
+  the lockfile so `npm ci` can run in CI
+- **CI — `npm run lint` fails** — added `eslint`, `@typescript-eslint/parser`, and
+  `@typescript-eslint/eslint-plugin` (^8) dev-deps; added `"type-check": "tsc --noEmit"`
+  script; created `.eslintrc.json`
+- **CI — ruff E401** — split `import hashlib, uuid` into two lines in
+  `api/tests/test_integration.py`
+- **CI — `safety` v3 CLI break** — pinned `safety<3` in workflow so legacy
+  `safety check -r` syntax works
+- **CI — wrong pip extras name** — renamed `[dev]` → `[test]` in
+  `sdk/python/pyproject.toml`; CI calls `pip install -e ".[test]"`
+- **Security** — upgraded `@typescript-eslint` from ^6 → ^8 eliminating 6 high-severity
+  ReDoS vulnerabilities in `minimatch` (CVEs GHSA-3ppc, GHSA-7r86, GHSA-23c5)
+- Added root `pyproject.toml` with `black` + `ruff` config (`line-length = 100`)
+
+---
+
 ## [1.0.0] — 2026-03-11 (Sprint 03)
 
 **Sprint goal:** SDKs published, multi-model comparison dashboard live, production deployed,

@@ -1,29 +1,39 @@
 # ObserveML — Production Observability for LLM Apps
+
 > Project 03 · The Agency AGI · NEXUS-Micro Deployment  
-> Version: v0.1.0 — 2026-03-11 — Sprint 0 (Setup)
+> **Version: v1.0.0 — 2026-03-11 — Sprint 3 (Production)**
 >
-> *"Prajnanam Brahma" — Consciousness is Brahman. (Aitareya Upanishad 3.3)*
+> *"Prajnanam Brahma" — Consciousness is Brahman. (Aitareya Upanishad 3.3)*  
 > *Your LLM app is not conscious — but it should be observable. ObserveML gives it awareness of itself.*
+
+[![CI](https://github.com/Venkatchavan/ObserveML-Production-Observability/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Venkatchavan/ObserveML-Production-Observability/actions/workflows/ci-cd.yml)
+[![PyPI](https://img.shields.io/pypi/v/observeml?label=PyPI)](https://pypi.org/project/observeml/)
+[![npm](https://img.shields.io/npm/v/observeml?label=npm)](https://www.npmjs.com/package/observeml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/pypi/pyversions/observeml)](https://pypi.org/project/observeml/)
 
 ---
 
 ## What Is ObserveML?
 
 **ObserveML** is the observability layer that every LLM application is missing.
-Drop in 3 lines of middleware. Every prompt, completion, tool call, and RAG retrieval
-is captured, traced, and surfaced on a dashboard that actually answers: *"Is my AI working?"*
+Drop in 3 lines. Latency, cost, tokens, errors, and anomaly alerts — surfaced on a
+dashboard that answers: *"Is my AI working?"*
 
 ```python
-# Python — wrap your OpenAI client
-from observeml import ObserveML
-client = ObserveML.wrap(openai.OpenAI(), api_key="oml_...")
-# All calls now traced automatically
+# Python — 3 lines to full observability
+import observeml
+
+observeml.configure(api_key="obs_live_xxxx")
+observeml.track(model="gpt-4o", latency_ms=320, input_tokens=150, output_tokens=80, cost_usd=0.0024)
 ```
 
-```javascript
-// JavaScript — same pattern
-import { ObserveML } from 'observeml'
-const client = ObserveML.wrap(new OpenAI(), { apiKey: 'oml_...' })
+```typescript
+// TypeScript / JavaScript
+import { configure, track } from 'observeml'
+
+configure('obs_live_xxxx')
+track({ model: 'gpt-4o', latencyMs: 320, inputTokens: 150, outputTokens: 80, costUsd: 0.0024 })
 ```
 
 ---
@@ -55,16 +65,16 @@ const client = ObserveML.wrap(new OpenAI(), { apiKey: 'oml_...' })
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| **SDK** | Python + JavaScript/TypeScript |
-| **Backend API** | FastAPI |
-| **Storage** | ClickHouse (append-only traces, high throughput) |
-| **Dashboard** | React 18 + Vite + Recharts |
-| **Embeddings** | OpenAI text-embedding-3-small (drift detection) |
-| **Tracing** | OpenTelemetry-compatible spans |
-| **CI/CD** | GitHub Actions |
-| **Deploy** | Fly.io |
+| Layer | Technology | Version |
+|-------|------------|----------|
+| **Python SDK** | observeml (PyPI) | `1.0.0` |
+| **JS/TS SDK** | observeml (npm) | `1.0.0` |
+| **Backend API** | FastAPI + Uvicorn | `0.111` / `0.29` |
+| **Metadata DB** | PostgreSQL | `16` |
+| **Metrics Store** | ClickHouse (MergeTree, 90-day TTL) | `23.8` |
+| **Dashboard** | React 18 + Vite + Recharts | `18` / `5` |
+| **CI/CD** | GitHub Actions | — |
+| **Deploy** | Fly.io (production) | — |
 
 ---
 
@@ -82,14 +92,27 @@ const client = ObserveML.wrap(new OpenAI(), { apiKey: 'oml_...' })
 
 ---
 
-## 15-Day Sprint Plan
+## Sprint History
 
-| Sprint | Days | Focus | Lead Agent |
-|--------|------|-------|-----------|
-| **Sprint 0** | 1–2 | Architecture + ClickHouse setup + tracing schema | Backend Architect + DB Architect |
-| **Sprint 1** | 3–7 | Python/JS SDK + trace ingestion API + ClickHouse writes | AI Engineer + Senior Developer |
-| **Sprint 2** | 8–11 | Dashboard: cost/latency/drift charts + prompt diff viewer | Frontend Developer |
-| **Sprint 3** | 12–15 | Hallucination scoring + RAG eval + harden + launch | AI Engineer + Security + QA |
+| Sprint | Status | Focus |
+|--------|--------|-------|
+| **Sprint 0** | ✅ Done | Architecture, ClickHouse schema, PostgreSQL migrations |
+| **Sprint 1** | ✅ Done | Python + JS SDK v0.1.0, POST /v1/ingest, ClickHouse writes |
+| **Sprint 2** | ✅ Done | Alert rules, anomaly detection, dashboard v0.2 |
+| **Sprint 3** | ✅ Done | Multi-model comparison, regression detection, v1.0.0 production |
+
+## Quick Start
+
+```bash
+# Python
+pip install observeml==1.0.0
+
+# TypeScript / Node
+npm install observeml@1.0.0
+```
+
+See the [Python SDK README](sdk/python/README.md) or the [docs site](docs-site/docs/quickstart.md) for a
+full integration walkthrough.
 
 ---
 
@@ -112,4 +135,6 @@ const client = ObserveML.wrap(new OpenAI(), { apiKey: 'oml_...' })
 
 ---
 
-*The Agency AGI · ObserveML v0.1.0 · 2026-03-11*
+---
+
+*The Agency AGI · ObserveML v1.0.0 · 2026-03-11 · [GitHub](https://github.com/Venkatchavan/ObserveML-Production-Observability)*

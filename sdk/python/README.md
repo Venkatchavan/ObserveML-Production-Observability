@@ -1,8 +1,11 @@
 # ObserveML Python SDK
 
 [![PyPI version](https://img.shields.io/pypi/v/observeml)](https://pypi.org/project/observeml/)
+[![Python versions](https://img.shields.io/pypi/pyversions/observeml)](https://pypi.org/project/observeml/)
+[![CI](https://github.com/Venkatchavan/ObserveML-Production-Observability/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Venkatchavan/ObserveML-Production-Observability/actions/workflows/ci-cd.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
 
-**Drop-in LLM observability. Captures metadata only — never prompt or response content.**
+**v1.0.0 — Drop-in LLM observability. Captures metadata only — never prompt or response content.**
 
 > **Observer Principle — non-negotiable:** `track()` has NO `prompt` or `response` parameter.
 > It captures: model, latency, tokens, cost, error flags. Nothing else. Ever.
@@ -93,10 +96,26 @@ This is enforced at three levels:
 
 If you need content-level tracing, this is not the right tool by design.
 
-## Alert thresholds (Sprint 02)
+## Alert thresholds
 
-ObserveML supports server-side anomaly detection. Configure thresholds via the dashboard
-or API to receive webhook notifications when metrics exceed defined limits:
+ObserveML v1.0.0 includes server-side anomaly detection. Configure thresholds via the
+dashboard or API to receive webhook notifications when metrics exceed defined limits:
+
+```bash
+# Create an alert rule (latency > 500 ms)
+curl -X POST https://api.observeml.io/v1/alerts \
+  -H 'x-api-key: obs_live_xxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{"metric": "avg_latency_ms", "threshold": 500}'
+```
+
+## Supported Python versions
+
+`3.9`, `3.10`, `3.11`, `3.12` — tested in CI on every push.
+
+## Changelog
+
+See [CHANGELOG.md](../../CHANGELOG.md) for the full release history.
 
 ```bash
 curl -X POST https://api.observeml.io/v1/alerts \
