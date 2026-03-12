@@ -14,6 +14,7 @@ import hashlib
 import os
 import uuid
 
+import anyio
 import httpx
 import pytest
 from sqlalchemy import text
@@ -382,15 +383,32 @@ async def test_stream_events_requires_auth():
 
 
 async def test_stream_events_returns_event_stream(test_credentials):
-    """OB-32: GET /v1/stream/events with valid key returns text/event-stream."""
+    """OB-32: GET /v1/stream/events with valid key returns text/event-stream.
+
+    The SSE generator runs forever, so we capture response headers then park
+    with anyio.sleep_forever() inside a 4-second cancel scope.  move_on_after
+    cleanly cancels the scope without triggering the 30 s pytest-timeout.
+    """
     _, raw_key = test_credentials
-    async with _make_client() as client:
-        # Use a short timeout so the SSE generator starts but we don't block
-        async with client.stream(
-            "GET", "/v1/stream/events", headers={"x-api-key": raw_key}, timeout=2.0
-        ) as resp:
-            assert resp.status_code == 200
-            assert "text/event-stream" in resp.headers.get("content-type", "")
+    captured_status: list[int] = []
+    captured_ct: list[str] = []
+
+    async def _grab_headers() -> None:
+        async with _make_client() as client:
+            async with client.stream(
+                "GET", "/v1/stream/events", headers={"x-api-key": raw_key}
+            ) as resp:
+                captured_status.append(resp.status_code)
+                captured_ct.append(resp.headers.get("content-type", ""))
+                # Park until the cancel scope fires — avoids reading the
+                # infinite SSE body and triggering the pytest-timeout.
+                await anyio.sleep_forever()
+
+    with anyio.move_on_after(4.0):
+        await _grab_headers()
+
+    assert captured_status == [200], f"SSE status: {captured_status}"
+    assert "text/event-stream" in captured_ct[0], f"SSE content-type: {captured_ct}"
 
 
 async def test_ingest_with_trace_id_accepted(test_credentials):
