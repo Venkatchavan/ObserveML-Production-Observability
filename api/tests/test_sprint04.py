@@ -106,18 +106,27 @@ async def test_stream_events_requires_auth():
     assert resp.status_code == 422
 
 
-async def test_stream_events_returns_event_stream(test_credentials):
+async def test_stream_events_returns_event_stream(test_credentials, monkeypatch):
     """GET /v1/stream/events with valid key returns 200 + text/event-stream.
 
-    stream.py's event_gen calls request.is_disconnected() at the top of each
-    loop iteration.  With httpx ASGITransport the ASGI receive() callable
-    returns {"type": "http.disconnect"} immediately once the request body has
-    been consumed, so is_disconnected() returns True on the first check and the
-    generator exits cleanly.  handle_async_request() can then return a complete
-    Response and client.get() resolves normally — no task-cancel gymnastics.
-    In production (uvicorn) receive() blocks; anyio.move_on_after(0) inside
-    is_disconnected() fires, returns False, and streaming continues as usual.
+    httpx ASGITransport buffers the entire response body before returning a
+    Response object, so client.get() blocks until the SSE generator is
+    exhausted.  The generator is infinite in production, which would hang the
+    test forever.
+
+    Fix: monkeypatch two module-level knobs in stream.py:
+      _KEEPALIVE_S   → 0.05 s  (first keepalive fires in ~50 ms)
+      _MAX_ITERATIONS → 1      (generator exits after one keepalive)
+    The generator yields ": keepalive\n\n" after ~50 ms then breaks;
+    handle_async_request() returns a finite Response and client.get()
+    resolves in < 1 s.  Production values (_KEEPALIVE_S=25, _MAX_ITERATIONS=None)
+    are unchanged.
     """
+    import app.routers.stream as stream_mod
+
+    monkeypatch.setattr(stream_mod, "_KEEPALIVE_S", 0.05)
+    monkeypatch.setattr(stream_mod, "_MAX_ITERATIONS", 1)
+
     _, raw_key = test_credentials
     async with _make_client() as client:
         resp = await client.get("/v1/stream/events", headers={"x-api-key": raw_key})

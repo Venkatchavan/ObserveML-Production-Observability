@@ -23,6 +23,9 @@ from app.services import event_store
 router = APIRouter()
 
 _KEEPALIVE_S = 25  # send a comment every 25 s to prevent proxy timeouts
+# Override to a small integer in tests to make the generator exit after N
+# iterations so httpx ASGITransport can return a Response.  None = infinite.
+_MAX_ITERATIONS: int | None = None
 
 
 @router.get("/stream/events")
@@ -50,20 +53,21 @@ async def stream_events(
             yield f"data: {json.dumps(ev)}\n\n"
 
         q = event_store.subscribe(org_id)
+        iterations = 0
         try:
             while True:
-                # Exit cleanly when the client disconnects.
-                # With httpx ASGITransport (tests) receive() returns http.disconnect
-                # immediately; with uvicorn (prod) anyio.move_on_after(0) inside
-                # is_disconnected() returns False so streaming continues normally.
                 if await request.is_disconnected():
+                    break
+                # _MAX_ITERATIONS is None in production; set to a small int in
+                # tests so httpx ASGITransport gets a finite response body.
+                if _MAX_ITERATIONS is not None and iterations >= _MAX_ITERATIONS:
                     break
                 try:
                     ev = await asyncio.wait_for(q.get(), timeout=_KEEPALIVE_S)
                     yield f"data: {json.dumps(ev)}\n\n"
                 except asyncio.TimeoutError:
-                    # Keep the connection alive through proxy idle timeouts
                     yield ": keepalive\n\n"
+                iterations += 1
         finally:
             event_store.unsubscribe(org_id, q)
 
