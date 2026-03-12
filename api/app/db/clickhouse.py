@@ -1,5 +1,6 @@
 """ClickHouse client — metric_events table (OB-02)."""
 
+import math
 from typing import Any, Dict, List
 import clickhouse_connect
 from app.config import settings
@@ -269,7 +270,8 @@ def query_monthly_cost(org_id: str) -> float:
     rows = result.result_rows
     if not rows or rows[0][0] is None:
         return 0.0
-    return float(rows[0][0])
+    value = float(rows[0][0])
+    return 0.0 if math.isnan(value) or math.isinf(value) else value
 
 
 def query_export(org_id: str, days: int = 30) -> List[Dict]:

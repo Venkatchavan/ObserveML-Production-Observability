@@ -52,6 +52,12 @@ async def stream_events(
         q = event_store.subscribe(org_id)
         try:
             while True:
+                # Exit cleanly when the client disconnects.
+                # With httpx ASGITransport (tests) receive() returns http.disconnect
+                # immediately; with uvicorn (prod) anyio.move_on_after(0) inside
+                # is_disconnected() returns False so streaming continues normally.
+                if await request.is_disconnected():
+                    break
                 try:
                     ev = await asyncio.wait_for(q.get(), timeout=_KEEPALIVE_S)
                     yield f"data: {json.dumps(ev)}\n\n"

@@ -5,8 +5,6 @@ Helpers are imported directly from conftest.
 333-Line Law: this file is intentionally < 333 lines.
 """
 
-import asyncio
-
 from conftest import _make_client
 
 
@@ -111,41 +109,20 @@ async def test_stream_events_requires_auth():
 async def test_stream_events_returns_event_stream(test_credentials):
     """GET /v1/stream/events with valid key returns 200 + text/event-stream.
 
-    httpx 0.28 / httpcore uses anyio task groups internally.  Running the SSE
-    connection inside anyio.move_on_after() makes those child scopes a
-    descendant of the cancel scope, which prematurely cancels httpcore before
-    response headers arrive.
-
-    Fix: run the connection in a separate asyncio.Task (outside any anyio
-    cancel scope).  The in-process ASGI transport delivers headers in < 50 ms;
-    a 1-second sleep is ample.  Python 3.12 propagates CancelledError through
-    asyncio.wait_for so the SSE generator's finally-block cleans up correctly.
+    stream.py's event_gen calls request.is_disconnected() at the top of each
+    loop iteration.  With httpx ASGITransport the ASGI receive() callable
+    returns {"type": "http.disconnect"} immediately once the request body has
+    been consumed, so is_disconnected() returns True on the first check and the
+    generator exits cleanly.  handle_async_request() can then return a complete
+    Response and client.get() resolves normally — no task-cancel gymnastics.
+    In production (uvicorn) receive() blocks; anyio.move_on_after(0) inside
+    is_disconnected() fires, returns False, and streaming continues as usual.
     """
     _, raw_key = test_credentials
-    status_holder: list = []
-    ct_holder: list = []
-
-    async def _open_stream() -> None:
-        async with _make_client() as client:
-            async with client.stream(
-                "GET", "/v1/stream/events", headers={"x-api-key": raw_key}
-            ) as resp:
-                status_holder.append(resp.status_code)
-                ct_holder.append(resp.headers.get("content-type", ""))
-                await asyncio.sleep(3600)  # park until cancelled
-
-    task = asyncio.create_task(_open_stream())
-    # Yield for 1 s — ASGI transport is in-process, headers arrive in < 50 ms
-    await asyncio.sleep(1.0)
-
-    assert status_holder, "SSE endpoint did not return headers within 1 s"
-    task.cancel()
-    # Wait up to 10 s for cleanup; Python 3.12 CancelledError propagates through
-    # asyncio.wait_for in the SSE generator so the finally-block runs promptly.
-    await asyncio.wait({task}, timeout=10.0)
-
-    assert status_holder[0] == 200
-    assert "text/event-stream" in ct_holder[0]
+    async with _make_client() as client:
+        resp = await client.get("/v1/stream/events", headers={"x-api-key": raw_key})
+    assert resp.status_code == 200
+    assert "text/event-stream" in resp.headers.get("content-type", "")
 
 
 # ---------------------------------------------------------------------------
