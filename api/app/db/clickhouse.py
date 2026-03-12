@@ -274,6 +274,8 @@ def query_monthly_cost(org_id: str) -> float:
 
 def query_export(org_id: str, days: int = 30) -> List[Dict]:
     """OB-38: Return last N days of raw events for CSV export."""
+    # Wrap in subquery so `toString(ts) AS ts` alias does not shadow the
+    # DateTime ts column used in the inner WHERE (ClickHouse alias scoping).
     result = _client().query(
         """
         SELECT
@@ -281,11 +283,14 @@ def query_export(org_id: str, days: int = 30) -> List[Dict]:
             input_tokens, output_tokens, cost_usd,
             error, error_code, trace_id,
             toString(ts) AS ts
-        FROM metric_events
-        WHERE org_id = %(org_id)s
-          AND ts >= subtractDays(now(), %(days)s)
-        ORDER BY ts DESC
-        LIMIT 100000
+        FROM (
+            SELECT *
+            FROM metric_events
+            WHERE org_id = %(org_id)s
+              AND ts >= subtractDays(now(), %(days)s)
+            ORDER BY ts DESC
+            LIMIT 100000
+        )
     """,
         parameters={"org_id": org_id, "days": days},
     )

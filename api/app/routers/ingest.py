@@ -35,8 +35,11 @@ async def ingest(
     now_ts = datetime.now(timezone.utc)
     events_data = [{**event.model_dump(), "ts": now_ts} for event in payload.events]
     insert_events(org_id, events_data)
-    # OB-32: push to SSE event store for connected dashboard clients
-    event_store.push(org_id, events_data)
+    # OB-32: push to SSE event store — convert ts datetime → ISO string so
+    # json.dumps() in the SSE generator never raises TypeError.
+    event_store.push(
+        org_id, [{**e, "ts": e["ts"].isoformat()} for e in events_data]
+    )
     # OB-11: check for anomalies in background after response is sent
     background_tasks.add_task(run_anomaly_check, org_id)
     return IngestResponse(accepted=len(events_data), rejected=0)
