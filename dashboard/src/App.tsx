@@ -5,11 +5,17 @@ import { ThresholdConfig } from "./components/ThresholdConfig";
 import { ModelDrillDown } from "./components/ModelDrillDown";
 import { ModelComparison } from "./components/ModelComparison";
 import { RegressionFeed } from "./components/RegressionFeed";
-import { fetchMetrics, fetchTrend } from "./api/client";
-import type { MetricSummary, TrendPoint } from "./api/client";
+import { LiveFeed } from "./components/LiveFeed";
+import {
+  fetchMetrics,
+  fetchTrend,
+  fetchTokenBudget,
+  downloadMetricsCsv,
+} from "./api/client";
+import type { MetricSummary, TrendPoint, TokenBudget } from "./api/client";
 import "./App.css";
 
-type Tab = "overview" | "alerts" | "compare";
+type Tab = "overview" | "alerts" | "compare" | "live";
 
 export default function App() {
   const [apiKey, setApiKey] = useState(
@@ -21,6 +27,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
   const [drillCallSite, setDrillCallSite] = useState<string>("");
+  const [tokenBudget, setTokenBudget] = useState<TokenBudget | null>(null);
+  const [csvLoading, setCsvLoading] = useState(false);
 
   const load = useCallback(async () => {
     if (!apiKey) return;
@@ -28,9 +36,14 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const [m, t] = await Promise.all([fetchMetrics(), fetchTrend()]);
+      const [m, t, tb] = await Promise.all([
+        fetchMetrics(),
+        fetchTrend(),
+        fetchTokenBudget().catch(() => null),
+      ]);
       setMetrics(m);
       setTrend(t.points);
+      setTokenBudget(tb);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
@@ -59,6 +72,18 @@ export default function App() {
         <button onClick={load} disabled={loading} aria-busy={loading}>
           {loading ? "Loading…" : "Refresh"}
         </button>
+        <button
+          onClick={async () => {
+            setCsvLoading(true);
+            try { await downloadMetricsCsv(30); }
+            catch (e: unknown) { setError(e instanceof Error ? e.message : "CSV error"); }
+            finally { setCsvLoading(false); }
+          }}
+          disabled={csvLoading || !apiKey}
+          aria-label="Export last 30 days as CSV"
+        >
+          {csvLoading ? "Exporting…" : "⬇ CSV"}
+        </button>
       </header>
 
       <nav aria-label="Dashboard tabs" className="tab-nav">
@@ -86,6 +111,14 @@ export default function App() {
         >
           Compare
         </button>
+        <button
+          role="tab"
+          aria-selected={tab === "live"}
+          onClick={() => setTab("live")}
+          className={tab === "live" ? "tab-active" : ""}
+        >
+          Live Feed
+        </button>
       </nav>
 
       {error && (
@@ -96,6 +129,16 @@ export default function App() {
 
       {tab === "overview" && (
         <>
+          {tokenBudget !== null && (
+            <div
+              role="status"
+              className={tokenBudget.projected_monthly_cost_usd > 10 ? "budget-warning" : "budget-ok"}
+            >
+              Token budget: ${tokenBudget.daily_avg_cost_usd.toFixed(4)}/day ·
+              projected ${tokenBudget.projected_monthly_cost_usd.toFixed(2)}/month
+              {tokenBudget.projected_monthly_cost_usd > 10 && " ⚠ over budget"}
+            </div>
+          )}
           <section aria-label="7-day latency and call volume trend">
             <MetricsChart data={trend} title="7-Day Latency & Call Volume" />
           </section>
@@ -109,6 +152,7 @@ export default function App() {
                     <th scope="col">Call Site</th>
                     <th scope="col">Model</th>
                     <th scope="col">Avg Latency (ms)</th>
+                    <th scope="col">p99 (ms)</th>
                     <th scope="col">Total Calls</th>
                     <th scope="col">Total Cost ($)</th>
                     <th scope="col">Error Rate</th>
@@ -128,6 +172,7 @@ export default function App() {
                         <td>{m.call_site || "(default)"}</td>
                         <td>{m.model}</td>
                         <td>{m.avg_latency_ms.toFixed(1)}</td>
+                        <td>{(m.p99_latency_ms ?? 0).toFixed(1)}</td>
                         <td>{m.total_calls.toLocaleString()}</td>
                         <td>${m.total_cost_usd.toFixed(4)}</td>
                         <td className={m.error_rate > 0.05 ? "error-high" : ""}>
@@ -167,6 +212,8 @@ export default function App() {
           <RegressionFeed />
         </>
       )}
+
+      {tab === "live" && <LiveFeed />}
     </main>
   );
 }

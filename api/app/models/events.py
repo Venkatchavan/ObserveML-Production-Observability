@@ -25,6 +25,7 @@ class MetricEvent(BaseModel):
     # reason: prompt_hash is SHA-256(prompt+response) for dedup only.
     # Raw prompt/response is NEVER transmitted. Observer Principle enforced.
     prompt_hash: str = ""
+    trace_id: str = ""  # OB-36: OpenTelemetry trace propagation
 
 
 class IngestRequest(BaseModel):
@@ -40,6 +41,9 @@ class MetricSummary(BaseModel):
     call_site: str
     model: str
     avg_latency_ms: float
+    p50_latency_ms: float = 0.0  # OB-33
+    p95_latency_ms: float = 0.0  # OB-33
+    p99_latency_ms: float = 0.0  # OB-33
     total_calls: int
     total_cost_usd: float
     error_rate: float
@@ -115,3 +119,17 @@ class CostRow(BaseModel):
     total_cost_usd: float
     total_calls: int
     avg_cost_per_call: float
+
+
+# ---------- Model routing recommendation (OB-35) ----------
+
+
+class ModelRoutingRecommendation(BaseModel):
+    model: str
+    avg_latency_ms: float
+    avg_cost_usd: float
+    error_rate: float
+    total_calls: int
+    meets_constraints: bool
+    # Śhāstrārtha gate: caveat MUST be present in every recommendation
+    caveat: str = "Based on observed performance only; evaluate for your specific workload"

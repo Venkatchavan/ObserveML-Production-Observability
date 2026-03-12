@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     clickhouse_user: str = "default"
     clickhouse_password: str = ""
     rate_limit_per_minute: int = 100
+    # OB-32: allowed dashboard origin for SSE CORS (never wildcard)
+    dashboard_origin: str = "http://localhost:5173"
 
     class Config:
         env_file = ".env"

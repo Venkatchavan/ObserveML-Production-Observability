@@ -1,12 +1,17 @@
-"""OB-21/22/23: Compare router — multi-model comparison, regression detection, cost."""
+"""OB-21/22/23/35: Compare router — multi-model comparison, regression detection, cost, routing."""
 
 from typing import List
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.clickhouse import query_model_comparison, query_cost_breakdown
+from app.db.clickhouse import query_model_comparison, query_cost_breakdown, query_model_routing
 from app.db.postgres import get_db
-from app.models.events import ModelComparisonRow, RegressionFinding, CostRow
+from app.models.events import (
+    ModelComparisonRow,
+    RegressionFinding,
+    CostRow,
+    ModelRoutingRecommendation,
+)
 from app.services.api_key_service import validate_api_key
 from app.services.regression_detector import detect_regressions
 
@@ -52,3 +57,36 @@ async def cost_breakdown(
     """OB-23: Daily cost per model for the last N days."""
     rows = query_cost_breakdown(org_id, days=days)
     return [CostRow(**row) for row in rows]
+
+
+@router.get("/compare/routing", response_model=List[ModelRoutingRecommendation])
+async def model_routing(
+    max_latency_ms: float = Query(..., description="Maximum acceptable avg latency (ms)"),
+    max_cost_usd: float = Query(..., description="Maximum acceptable avg cost per call ($)"),
+    org_id: str = Depends(_org),
+):
+    """OB-35: Recommend models meeting latency + cost constraints (last 7 days).
+
+    Śhāstrārtha gate: every recommendation includes a caveat field clarifying
+    that results are based on observed performance only.
+    """
+    rows = query_model_routing(org_id)
+    recommendations = []
+    for row in rows:
+        meets = (
+            float(row["avg_latency_ms"]) <= max_latency_ms
+            and float(row["avg_cost_usd"]) <= max_cost_usd
+        )
+        recommendations.append(
+            ModelRoutingRecommendation(
+                model=row["model"],
+                avg_latency_ms=float(row["avg_latency_ms"]),
+                avg_cost_usd=float(row["avg_cost_usd"]),
+                error_rate=float(row["error_rate"]),
+                total_calls=int(row["total_calls"]),
+                meets_constraints=meets,
+            )
+        )
+    # Sort: models meeting constraints first, then cheapest
+    recommendations.sort(key=lambda r: (not r.meets_constraints, r.avg_cost_usd))
+    return recommendations

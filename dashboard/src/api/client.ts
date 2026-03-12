@@ -4,6 +4,9 @@ export interface MetricSummary {
   call_site: string;
   model: string;
   avg_latency_ms: number;
+  p50_latency_ms: number;
+  p95_latency_ms: number;
+  p99_latency_ms: number;
   total_calls: number;
   total_cost_usd: number;
   error_rate: number;
@@ -151,5 +154,58 @@ export async function fetchCostBreakdown(days = 7): Promise<CostRow[]> {
   const res = await fetch(url.toString(), { headers: headers() });
   if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
   return res.json();
+}
+
+// OB-35: Model routing
+export interface ModelRoutingRecommendation {
+  model: string;
+  avg_latency_ms: number;
+  avg_cost_usd: number;
+  error_rate: number;
+  total_calls: number;
+  meets_constraints: boolean;
+  caveat: string;
+}
+
+export async function fetchModelRouting(
+  maxLatencyMs = 5000,
+  maxCostUsd = 1.0,
+): Promise<ModelRoutingRecommendation[]> {
+  const url = new URL(`${BASE_URL}/v1/compare/routing`);
+  url.searchParams.set("max_latency_ms", String(maxLatencyMs));
+  url.searchParams.set("max_cost_usd", String(maxCostUsd));
+  const res = await fetch(url.toString(), { headers: headers() });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+// OB-34: Token budget
+export interface TokenBudget {
+  daily_avg_cost_usd: number;
+  projected_monthly_cost_usd: number;
+  days_in_month: number;
+}
+
+export async function fetchTokenBudget(): Promise<TokenBudget> {
+  const res = await fetch(`${BASE_URL}/v1/metrics/token-budget`, { headers: headers() });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+// OB-38: CSV export
+export async function downloadMetricsCsv(days = 30): Promise<void> {
+  const url = new URL(`${BASE_URL}/v1/metrics/export`);
+  url.searchParams.set("days", String(days));
+  const res = await fetch(url.toString(), { headers: headers() });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = `observeml-export-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(href);
 }
 

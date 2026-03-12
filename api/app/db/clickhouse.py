@@ -17,7 +17,8 @@ def _client():
 
 def ensure_table():
     """Create metric_events table with 90-day TTL if not exists (OB-02)."""
-    _client().command("""
+    client = _client()
+    client.command("""
         CREATE TABLE IF NOT EXISTS metric_events (
             event_id      String,
             org_id        String,
@@ -36,6 +37,8 @@ def ensure_table():
         ORDER BY (org_id, call_site, ts)
         TTL toDateTime(ts) + INTERVAL 90 DAY
     """)
+    # OB-36: idempotent schema migration — add trace_id if not already present
+    client.command("ALTER TABLE metric_events ADD COLUMN IF NOT EXISTS trace_id String DEFAULT ''")
 
 
 def insert_events(org_id: str, events: List[Dict[str, Any]]) -> None:
@@ -53,6 +56,7 @@ def insert_events(org_id: str, events: List[Dict[str, Any]]) -> None:
             e["error_code"],
             e["prompt_hash"],
             e["ts"],
+            e.get("trace_id", ""),  # OB-36
         ]
         for e in events
     ]
@@ -72,6 +76,7 @@ def insert_events(org_id: str, events: List[Dict[str, Any]]) -> None:
             "error_code",
             "prompt_hash",
             "ts",
+            "trace_id",
         ],
     )
 
@@ -87,10 +92,13 @@ def query_metrics(org_id: str, call_site: str = None) -> List[Dict]:
         SELECT
             call_site,
             model,
-            avg(latency_ms)           AS avg_latency_ms,
-            count()                   AS total_calls,
-            sum(cost_usd)             AS total_cost_usd,
-            countIf(error) / count()  AS error_rate
+            avg(latency_ms)              AS avg_latency_ms,
+            quantile(0.5)(latency_ms)    AS p50_latency_ms,
+            quantile(0.95)(latency_ms)   AS p95_latency_ms,
+            quantile(0.99)(latency_ms)   AS p99_latency_ms,
+            count()                      AS total_calls,
+            sum(cost_usd)                AS total_cost_usd,
+            countIf(error) / count()     AS error_rate
         FROM metric_events
         {where}
         GROUP BY call_site, model
@@ -215,6 +223,69 @@ def query_cost_breakdown(org_id: str, days: int = 7) -> List[Dict]:
           AND ts >= subtractDays(now(), %(days)s)
         GROUP BY model, day
         ORDER BY day DESC, total_cost_usd DESC
+    """,
+        parameters={"org_id": org_id, "days": days},
+    )
+    return [dict(zip(result.column_names, row)) for row in result.result_rows]
+
+
+def query_model_routing(org_id: str) -> List[Dict]:
+    """OB-35: Per-model avg latency, avg cost, error_rate for last 7 days."""
+    result = _client().query(
+        """
+        SELECT
+            model,
+            avg(latency_ms)          AS avg_latency_ms,
+            avg(cost_usd)            AS avg_cost_usd,
+            countIf(error)/count()   AS error_rate,
+            count()                  AS total_calls
+        FROM metric_events
+        WHERE org_id = %(org_id)s
+          AND ts >= subtractDays(now(), 7)
+        GROUP BY model
+        ORDER BY avg_cost_usd ASC
+    """,
+        parameters={"org_id": org_id},
+    )
+    return [dict(zip(result.column_names, row)) for row in result.result_rows]
+
+
+def query_monthly_cost(org_id: str) -> float:
+    """OB-34: Return avg daily cost for the current calendar month."""
+    result = _client().query(
+        """
+        SELECT avg(daily_cost) AS avg_daily_cost
+        FROM (
+            SELECT toDate(ts) AS day, sum(cost_usd) AS daily_cost
+            FROM metric_events
+            WHERE org_id = %(org_id)s
+              AND toMonth(ts) = toMonth(now())
+              AND toYear(ts) = toYear(now())
+            GROUP BY day
+        )
+    """,
+        parameters={"org_id": org_id},
+    )
+    rows = result.result_rows
+    if not rows or rows[0][0] is None:
+        return 0.0
+    return float(rows[0][0])
+
+
+def query_export(org_id: str, days: int = 30) -> List[Dict]:
+    """OB-38: Return last N days of raw events for CSV export."""
+    result = _client().query(
+        """
+        SELECT
+            event_id, call_site, model, latency_ms,
+            input_tokens, output_tokens, cost_usd,
+            error, error_code, trace_id,
+            toString(ts) AS ts
+        FROM metric_events
+        WHERE org_id = %(org_id)s
+          AND ts >= subtractDays(now(), %(days)s)
+        ORDER BY ts DESC
+        LIMIT 100000
     """,
         parameters={"org_id": org_id, "days": days},
     )

@@ -5,6 +5,44 @@ Format: [Semantic Versioning](https://semver.org). Dates are UTC.
 
 ---
 
+## [1.1.0] — 2026-03-12 (Sprint 04 — Sampling, SSE, Analytics)
+
+### Added
+
+- **OB-31 — Head-based sampling** — Python and JS SDKs accept `sample_rate` (0.0–1.0);
+  events are dropped client-side before any network call, preserving the Observer Principle.
+- **OB-32 — Server-Sent Events** — `GET /v1/stream/events` streams live ingested events
+  per-org; Origin header validated (no wildcard CORS); last 50 events replayed on connect;
+  25-second keepalive comment prevents proxy timeouts.
+- **OB-33 — Latency percentiles** — `GET /v1/metrics` now returns `p50_latency_ms`,
+  `p95_latency_ms`, and `p99_latency_ms` via ClickHouse `quantile()` functions.
+- **OB-34 — Token budget alerting** — new `monthly_projected_cost_usd` alert metric;
+  `GET /v1/metrics/token-budget` returns daily avg and projected monthly cost.
+- **OB-35 — Model routing recommendations** — `GET /v1/compare/routing` returns per-model
+  performance compared against caller-supplied `max_latency_ms` and `max_cost_usd`
+  constraints; every row includes a `caveat` field (Vedantic Launch Gate satisfied).
+- **OB-36 — OpenTelemetry trace_id propagation** — SDK `track()` accepts optional
+  `trace_id`; stored in ClickHouse `metric_events.trace_id`; exposed in CSV export.
+- **OB-37 — Live Feed dashboard panel** — new "Live Feed" tab; SSE auto-reconnect with
+  5-second back-off; shows last 50 events with trace ID, latency, cost, and error flag.
+- **OB-38 — CSV export** — `GET /v1/metrics/export` streams a CSV of all event columns
+  including `trace_id` and `p99_latency_ms` for the last N days (default 30).
+
+### Changed
+
+- Dashboard: "Call Site Breakdown" table now includes a **p99 latency** column.
+- Dashboard: header bar has an **Export CSV** button.
+- Dashboard: **Token Budget** status banner shows projected monthly cost.
+- Python SDK version bumped to `1.1.0`; JS SDK `sampleRate` constructor param added.
+
+### Migration
+
+Run `migrations/clickhouse/002_trace_id.sql` on any existing ClickHouse instance
+(`ALTER TABLE metric_events ADD COLUMN IF NOT EXISTS trace_id String DEFAULT ''`).
+The `ensure_table()` startup call performs this migration automatically.
+
+---
+
 ## [1.0.3] — 2026-03-12 (Test-API full green)
 
 ### Fixed

@@ -300,3 +300,119 @@ async def test_compare_cost_returns_list(test_credentials):
         assert "model" in row
         assert "day" in row
         assert "total_cost_usd" in row
+
+
+# ---------------------------------------------------------------------------
+# OB-39: Sprint 04 — new endpoint tests
+# ---------------------------------------------------------------------------
+
+
+async def test_metrics_includes_percentiles(test_credentials):
+    """OB-33: GET /v1/metrics must include p50/p95/p99 latency fields."""
+    _, raw_key = test_credentials
+    async with _make_client() as client:
+        resp = await client.get("/v1/metrics", headers={"x-api-key": raw_key})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert isinstance(body, list)
+    if body:
+        row = body[0]
+        assert "p50_latency_ms" in row, "missing p50_latency_ms"
+        assert "p95_latency_ms" in row, "missing p95_latency_ms"
+        assert "p99_latency_ms" in row, "missing p99_latency_ms"
+
+
+async def test_metrics_export_returns_csv(test_credentials):
+    """OB-38: GET /v1/metrics/export must return text/csv with headers row."""
+    _, raw_key = test_credentials
+    async with _make_client() as client:
+        resp = await client.get(
+            "/v1/metrics/export",
+            params={"days": 7},
+            headers={"x-api-key": raw_key},
+        )
+    assert resp.status_code == 200
+    assert "text/csv" in resp.headers.get("content-type", "")
+    # First line must be the CSV header row
+    first_line = resp.text.splitlines()[0] if resp.text.strip() else ""
+    if first_line:
+        assert "event_id" in first_line
+        assert "trace_id" in first_line
+
+
+async def test_token_budget_returns_projection(test_credentials):
+    """OB-34: GET /v1/metrics/token-budget must include projected_monthly_cost_usd."""
+    _, raw_key = test_credentials
+    async with _make_client() as client:
+        resp = await client.get("/v1/metrics/token-budget", headers={"x-api-key": raw_key})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "daily_avg_cost_usd" in body
+    assert "projected_monthly_cost_usd" in body
+    assert "days_in_month" in body
+    assert isinstance(body["projected_monthly_cost_usd"], float)
+    assert body["days_in_month"] in range(28, 32)
+
+
+async def test_compare_routing_returns_recommendations(test_credentials):
+    """OB-35: GET /v1/compare/routing must return list with caveat field."""
+    _, raw_key = test_credentials
+    async with _make_client() as client:
+        resp = await client.get(
+            "/v1/compare/routing",
+            params={"max_latency_ms": 9999, "max_cost_usd": 99.0},
+            headers={"x-api-key": raw_key},
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert isinstance(body, list)
+    if body:
+        row = body[0]
+        assert "model" in row
+        assert "caveat" in row, "Vedantic gate: caveat field must be present"
+        assert "meets_constraints" in row
+        assert isinstance(row["meets_constraints"], bool)
+
+
+async def test_stream_events_requires_auth():
+    """OB-32: GET /v1/stream/events without API key must return 422 (missing header)."""
+    async with _make_client() as client:
+        resp = await client.get("/v1/stream/events")
+    assert resp.status_code == 422
+
+
+async def test_stream_events_returns_event_stream(test_credentials):
+    """OB-32: GET /v1/stream/events with valid key returns text/event-stream."""
+    _, raw_key = test_credentials
+    async with _make_client() as client:
+        # Use a short timeout so the SSE generator starts but we don't block
+        async with client.stream(
+            "GET", "/v1/stream/events", headers={"x-api-key": raw_key}, timeout=2.0
+        ) as resp:
+            assert resp.status_code == 200
+            assert "text/event-stream" in resp.headers.get("content-type", "")
+
+
+async def test_ingest_with_trace_id_accepted(test_credentials):
+    """OB-36: Ingest accepts trace_id field and stores it without error."""
+    _, raw_key = test_credentials
+    async with _make_client() as client:
+        resp = await client.post(
+            "/v1/ingest",
+            json={
+                "events": [
+                    {
+                        "model": "gpt-4o",
+                        "latency_ms": 80,
+                        "input_tokens": 20,
+                        "output_tokens": 10,
+                        "cost_usd": 0.0005,
+                        "call_site": "trace-test",
+                        "trace_id": "abc123def456abc7",
+                    }
+                ]
+            },
+            headers={"x-api-key": raw_key},
+        )
+    assert resp.status_code == 200
+    assert resp.json()["accepted"] == 1

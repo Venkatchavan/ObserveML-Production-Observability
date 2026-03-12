@@ -19,6 +19,7 @@ export interface TrackOptions {
   errorCode?: string;
   callSite?: string;
   promptHash?: string;
+  traceId?: string; // OB-36: OpenTelemetry trace propagation
   // reason: prompt/response are intentionally absent — Observer Principle
 }
 
@@ -32,22 +33,30 @@ interface MetricEvent {
   error_code: string;
   call_site: string;
   prompt_hash: string;
+  trace_id: string; // OB-36
 }
 
 export class ObserveML {
   private readonly apiKey: string;
   private readonly endpoint: string;
+  private readonly sampleRate: number;
   private buffer: MetricEvent[] = [];
   private timer: ReturnType<typeof setInterval> | null = null;
 
   // OB-17: flushIntervalMs is configurable (default 5 s)
+  // OB-31: sampleRate controls head-based sampling (0.0–1.0, default 1.0)
   constructor(
     apiKey: string,
     endpoint: string = DEFAULT_ENDPOINT,
     flushIntervalMs: number = FLUSH_INTERVAL_MS,
+    sampleRate: number = 1.0,
   ) {
+    if (sampleRate < 0 || sampleRate > 1) {
+      throw new RangeError("sampleRate must be between 0.0 and 1.0");
+    }
     this.apiKey = apiKey;
     this.endpoint = endpoint;
+    this.sampleRate = sampleRate;
     this.timer = setInterval(() => this.flush(), flushIntervalMs);
     // .unref() lets Node.js exit even if flush timer is still active —
     // prevents test-runner "force exit" warnings.
@@ -57,6 +66,8 @@ export class ObserveML {
   }
 
   track(options: TrackOptions): void {
+    // OB-31: head-based sampling — drop event without blocking caller
+    if (this.sampleRate < 1.0 && Math.random() >= this.sampleRate) return;
     const event: MetricEvent = {
       model: options.model,
       latency_ms: options.latencyMs,
@@ -67,6 +78,7 @@ export class ObserveML {
       error_code: options.errorCode ?? "",
       call_site: options.callSite ?? "",
       prompt_hash: options.promptHash ?? "",
+      trace_id: options.traceId ?? "",  // OB-36
     };
     this.buffer.push(event);
     if (this.buffer.length >= BATCH_SIZE) {

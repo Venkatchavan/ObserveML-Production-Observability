@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "observeml"
-version = "1.0.3"
+version = "1.1.0"
 description = "Drop-in LLM observability SDK -- metadata only, never prompt content"
 authors = [{ name = "Venkat Chavan", email = "venkat@observeml.io" }]
 readme = "README.md"

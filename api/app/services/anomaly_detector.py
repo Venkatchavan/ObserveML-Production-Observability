@@ -1,6 +1,9 @@
-"""OB-11: Sliding-window anomaly detection — evaluated after each ingest batch."""
+"""OB-11/34: Sliding-window anomaly detection + token budget alerting."""
 
-from app.db.clickhouse import query_window_stats
+import calendar
+from datetime import datetime, timezone
+
+from app.db.clickhouse import query_window_stats, query_monthly_cost
 from app.db.postgres import AsyncSessionLocal
 from app.services.alert_dispatcher import dispatch_alert
 from sqlalchemy import text
@@ -12,8 +15,8 @@ SUPPORTED_METRICS = {"avg_latency_ms", "error_rate", "cost_usd"}
 async def run_anomaly_check(org_id: str) -> None:
     """Check alert_rules thresholds against the last WINDOW_MINUTES of activity.
 
-    Uses its own DB session so it can safely run in a FastAPI BackgroundTask
-    after the response is returned.
+    Also checks monthly_projected_cost_usd budget rules (OB-34).
+    Uses its own DB session so it can safely run in a FastAPI BackgroundTask.
     """
     async with AsyncSessionLocal() as db:
         result = await db.execute(
@@ -28,17 +31,38 @@ async def run_anomaly_check(org_id: str) -> None:
             return
 
         stats = query_window_stats(org_id, window_minutes=WINDOW_MINUTES)
-        if not stats:
-            return
+
+        # OB-34: compute projected monthly cost once (only if any budget rules)
+        budget_rules = [r for r in rules if r.metric == "monthly_projected_cost_usd"]
+        projected_monthly: float | None = None
+        if budget_rules:
+            now = datetime.now(timezone.utc)
+            days_in_month = calendar.monthrange(now.year, now.month)[1]
+            projected_monthly = query_monthly_cost(org_id) * days_in_month
 
         for rule in rules:
             metric = rule.metric
-            if metric not in SUPPORTED_METRICS:
-                continue
             threshold = float(rule.threshold)
 
+            # OB-34: token budget alert — fires against projected monthly cost
+            if metric == "monthly_projected_cost_usd":
+                if projected_monthly is not None and projected_monthly > threshold:
+                    await dispatch_alert(
+                        rule_id=str(rule.id),
+                        org_id=org_id,
+                        call_site=rule.call_site or "*",
+                        metric=metric,
+                        current_value=projected_monthly,
+                        threshold=threshold,
+                        webhook_url=rule.webhook_url,
+                        db=db,
+                    )
+                continue
+
+            if metric not in SUPPORTED_METRICS or not stats:
+                continue
+
             for stat in stats:
-                # None call_site on a rule means "any call_site triggers"
                 if rule.call_site and stat["call_site"] != rule.call_site:
                     continue
                 current_value = float(stat.get(metric, 0.0))

@@ -8,6 +8,7 @@ Observer Principle:
 
 import hashlib
 import queue
+import random
 import threading
 import time
 from typing import Optional
@@ -25,10 +26,14 @@ class ObserveML:
         api_key: str,
         endpoint: str = _DEFAULT_ENDPOINT,
         flush_interval_s: float = _FLUSH_INTERVAL_S,  # OB-17: configurable
+        sample_rate: float = 1.0,  # OB-31: head-based sampling (0.0–1.0)
     ) -> None:
+        if not 0.0 <= sample_rate <= 1.0:
+            raise ValueError("sample_rate must be between 0.0 and 1.0")
         self._api_key = api_key
         self._endpoint = endpoint
         self._flush_interval_s = flush_interval_s
+        self._sample_rate = sample_rate
         self._queue: queue.Queue = queue.Queue(maxsize=10_000)
         self._thread = threading.Thread(target=self._flush_loop, daemon=True)
         self._thread.start()
@@ -45,10 +50,14 @@ class ObserveML:
         error_code: str = "",
         call_site: str = "",
         prompt_hash: str = "",
+        trace_id: str = "",  # OB-36: OpenTelemetry trace propagation
         # reason: prompt/response parameters are intentionally absent.
         # Observer Principle: this SDK captures metadata ONLY.
     ) -> None:
         """Enqueue a metric event. Non-blocking. Returns immediately."""
+        # OB-31: head-based sampling — drop deterministically, never block caller
+        if self._sample_rate < 1.0 and random.random() >= self._sample_rate:
+            return
         event = {
             "model": model,
             "latency_ms": latency_ms,
@@ -59,6 +68,7 @@ class ObserveML:
             "error_code": error_code,
             "call_site": call_site,
             "prompt_hash": prompt_hash,
+            "trace_id": trace_id,
         }
         try:
             self._queue.put_nowait(event)
@@ -99,10 +109,16 @@ def configure(
     api_key: str,
     endpoint: str = _DEFAULT_ENDPOINT,
     flush_interval_s: float = _FLUSH_INTERVAL_S,
+    sample_rate: float = 1.0,  # OB-31
 ) -> None:
     """Initialize the module-level singleton client."""
     global _default
-    _default = ObserveML(api_key=api_key, endpoint=endpoint, flush_interval_s=flush_interval_s)
+    _default = ObserveML(
+        api_key=api_key,
+        endpoint=endpoint,
+        flush_interval_s=flush_interval_s,
+        sample_rate=sample_rate,
+    )
 
 
 def track(
@@ -116,6 +132,7 @@ def track(
     error_code: str = "",
     call_site: str = "",
     prompt_hash: str = "",
+    trace_id: str = "",  # OB-36
 ) -> None:
     """Module-level track() — requires configure() to be called first."""
     if _default is None:
@@ -130,6 +147,7 @@ def track(
         error_code=error_code,
         call_site=call_site,
         prompt_hash=prompt_hash,
+        trace_id=trace_id,
     )
 
 

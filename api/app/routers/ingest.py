@@ -9,6 +9,7 @@ from app.models.events import IngestRequest, IngestResponse
 from app.services.api_key_service import validate_api_key
 from app.services.rate_limiter import is_rate_limited
 from app.services.anomaly_detector import run_anomaly_check
+from app.services import event_store
 
 router = APIRouter()
 
@@ -34,6 +35,8 @@ async def ingest(
     now_ts = datetime.now(timezone.utc)
     events_data = [{**event.model_dump(), "ts": now_ts} for event in payload.events]
     insert_events(org_id, events_data)
+    # OB-32: push to SSE event store for connected dashboard clients
+    event_store.push(org_id, events_data)
     # OB-11: check for anomalies in background after response is sent
     background_tasks.add_task(run_anomaly_check, org_id)
     return IngestResponse(accepted=len(events_data), rejected=0)

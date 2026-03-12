@@ -10,7 +10,7 @@ import types
 from .tracker import ObserveML, configure, track, prompt_hash
 
 __all__ = ["ObserveML", "configure", "track", "prompt_hash"]
-__version__ = "1.0.3"
+__version__ = "1.1.0"
 
 
 class _Module(types.ModuleType):
