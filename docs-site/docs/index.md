@@ -1,8 +1,8 @@
 ﻿# ObserveML
 
-**v1.0.3 â€” Drop-in LLM observability for production AI applications.**
+**v1.1.0 — Drop-in LLM observability for production AI applications.**
 
-ObserveML tracks what matters â€” latency, tokens, cost, error rates â€” without ever
+ObserveML tracks what matters — latency, tokens, cost, error rates — without ever
 touching prompt or response content.
 
 ## Why ObserveML?
@@ -10,20 +10,20 @@ touching prompt or response content.
 | Problem | ObserveML's answer |
 |---------|-------------------|
 | LLM calls are slow and expensive | p99 < 1ms `track()` overhead; real-time dashboards |
-| Cost visibility is poor | Per-model daily cost breakdown, auto-estimated |
+| Cost visibility is poor | Per-model daily cost breakdown, token budget projections |
 | Regressions go unnoticed | Sliding-window statistical detection (Welch's z-test) |
-| Compliance requires no-content logging | Observer Principle â€” no prompt/response transmitted |
+| Compliance requires no-content logging | Observer Principle — no prompt/response transmitted |
 
 ## Installation
 
 === "Python"
     ```bash
-    pip install observeml==1.0.0
+    pip install observeml==1.1.0
     ```
 
 === "TypeScript / npm"
     ```bash
-    npm install observeml@1.0.0
+    npm install observeml@1.1.0
     ```
 
 ## 30-Second Integration
@@ -47,9 +47,10 @@ That's it. Events batch-send in the background every 5 seconds. The caller is ne
 
 ## Dashboard
 
-- **Overview** â€” 7-day trend + per-call-site breakdown
-- **Compare** â€” Side-by-side model latency / error / cost charts + regression feed
-- **Alerts** â€” Real-time threshold breach feed + configurable rules
+- **Overview** — 7-day trend + per-call-site breakdown with p50/p95/p99 latency + token budget banner
+- **Compare** — Side-by-side model latency / error / cost charts + regression feed + routing recommendations
+- **Alerts** — Real-time threshold breach feed + configurable rules (including `monthly_projected_cost_usd`)
+- **Live Feed** — Server-Sent Events stream of events as they arrive; auto-reconnect
 
 ## Next Steps
 

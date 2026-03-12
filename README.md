@@ -1,7 +1,7 @@
 # ObserveML — Production Observability for LLM Apps
 
 > Project 03 · The Agency AGI · NEXUS-Micro Deployment  
-> **Version: v1.0.2 — 2026-03-12 — Sprint 3 (Production)**
+> **Version: v1.1.0 — 2026-03-12 — Sprint 4 (Sampling, SSE, Analytics)**
 >
 > *"Prajnanam Brahma" — Consciousness is Brahman. (Aitareya Upanishad 3.3)*  
 > *Your LLM app is not conscious — but it should be observable. ObserveML gives it awareness of itself.*
@@ -24,16 +24,16 @@ dashboard that answers: *"Is my AI working?"*
 # Python — 3 lines to full observability
 import observeml
 
-observeml.configure(api_key="obs_live_xxxx")
-observeml.track(model="gpt-4o", latency_ms=320, input_tokens=150, output_tokens=80, cost_usd=0.0024)
+observeml.configure(api_key="obs_live_xxxx", sample_rate=0.1)  # sample 10% of calls
+observeml.track(model="gpt-4o", latency_ms=320, input_tokens=150, output_tokens=80, cost_usd=0.0024, trace_id="your-otel-trace-id")
 ```
 
 ```typescript
 // TypeScript / JavaScript
 import { configure, track } from 'observeml'
 
-configure('obs_live_xxxx')
-track({ model: 'gpt-4o', latencyMs: 320, inputTokens: 150, outputTokens: 80, costUsd: 0.0024 })
+configure('obs_live_xxxx', undefined, undefined, 0.1)  // sampleRate=0.1
+track({ model: 'gpt-4o', latencyMs: 320, inputTokens: 150, outputTokens: 80, costUsd: 0.0024, traceId: 'your-otel-trace-id' })
 ```
 
 ---
@@ -67,8 +67,8 @@ track({ model: 'gpt-4o', latencyMs: 320, inputTokens: 150, outputTokens: 80, cos
 
 | Layer | Technology | Version |
 |-------|------------|----------|
-| **Python SDK** | observeml (PyPI) | `1.0.0` |
-| **JS/TS SDK** | observeml (npm) | `1.0.0` |
+| **Python SDK** | observeml (PyPI) | `1.1.0` |
+| **JS/TS SDK** | observeml (npm) | `1.1.0` |
 | **Backend API** | FastAPI + Uvicorn | `0.111` / `0.29` |
 | **Metadata DB** | PostgreSQL | `16` |
 | **Metrics Store** | ClickHouse (MergeTree, 90-day TTL) | `23.8` |
@@ -100,15 +100,16 @@ track({ model: 'gpt-4o', latencyMs: 320, inputTokens: 150, outputTokens: 80, cos
 | **Sprint 1** | ✅ Done | Python + JS SDK v0.1.0, POST /v1/ingest, ClickHouse writes |
 | **Sprint 2** | ✅ Done | Alert rules, anomaly detection, dashboard v0.2 |
 | **Sprint 3** | ✅ Done | Multi-model comparison, regression detection, v1.0.0 production |
+| **Sprint 4** | ✅ Done | Sampling, SSE live feed, percentiles (p50/p95/p99), trace_id, model routing, CSV export, token budget |
 
 ## Quick Start
 
 ```bash
 # Python
-pip install observeml==1.0.0
+pip install observeml==1.1.0
 
 # TypeScript / Node
-npm install observeml@1.0.0
+npm install observeml@1.1.0
 ```
 
 See the [Python SDK README](sdk/python/README.md) or the [docs site](docs-site/docs/quickstart.md) for a
@@ -137,4 +138,4 @@ full integration walkthrough.
 
 ---
 
-*Copyright © 2026 Venkat Chavan · Licensed under the [MIT License](LICENSE) · ObserveML v1.0.2 · [GitHub](https://github.com/Venkatchavan/ObserveML-Production-Observability)*
+*Copyright © 2026 Venkat Chavan · Licensed under the [MIT License](LICENSE) · ObserveML v1.1.0 · [GitHub](https://github.com/Venkatchavan/ObserveML-Production-Observability)*

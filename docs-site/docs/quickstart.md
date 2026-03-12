@@ -8,12 +8,12 @@ Sign up at [app.observeml.io](https://app.observeml.io) and create your first AP
 
 === "Python"
     ```bash
-    pip install observeml==1.0.3
+    pip install observeml==1.1.0
     ```
 
 === "TypeScript / npm"
     ```bash
-    npm install observeml@1.0.3
+    npm install observeml@1.1.0
     ```
 
 ## 3. Configure
@@ -101,8 +101,53 @@ observeml.configure(
     api_key="obs_live_xxxx",
     flush_interval_s=1.0,   # batch every 1 s (default: 5 s)
     endpoint="https://api.observeml.io/v1/ingest",  # default
+    sample_rate=0.1,        # OB-31: only send 10% of events (default: 1.0 = 100%)
 )
 ```
+
+## Sampling (OB-31)
+
+For high-volume services you can reduce telemetry overhead with head-based sampling.
+Dropping happens client-side — events are never serialised or queued:
+
+=== "Python"
+    ```python
+    observeml.configure(api_key="obs_live_xxxx", sample_rate=0.05)  # 5%
+    ```
+
+=== "TypeScript"
+    ```typescript
+    import { ObserveML } from "observeml";
+    const tracker = new ObserveML("obs_live_xxxx", undefined, undefined, 0.05);
+    ```
+
+## OTel Trace ID (OB-36)
+
+Pass an OpenTelemetry trace ID to correlate LLM calls with distributed traces:
+
+=== "Python"
+    ```python
+    from opentelemetry import trace
+
+    span = trace.get_current_span()
+    trace_id = format(span.get_span_context().trace_id, "032x")
+
+    observeml.track(
+        model="gpt-4o",
+        latency_ms=320,
+        cost_usd=0.0024,
+        trace_id=trace_id,
+    )
+    ```
+
+=== "TypeScript"
+    ```typescript
+    track({
+      model: "gpt-4o",
+      latencyMs: 320,
+      traceId: span.spanContext().traceId,
+    });
+    ```
 
 ## Set Up Alerts
 
