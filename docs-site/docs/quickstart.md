@@ -8,12 +8,17 @@ Sign up at [app.observeml.io](https://app.observeml.io) and create your first AP
 
 === "Python"
     ```bash
-    pip install observeml==1.1.0
+    pip install observeml==1.2.0
     ```
 
 === "TypeScript / npm"
     ```bash
-    npm install observeml@1.1.0
+    npm install observeml@1.2.0
+    ```
+
+=== "Java / Gradle"
+    ```groovy
+    implementation 'io.observeml:observeml-java:0.1.0'
     ```
 
 ## 3. Configure
@@ -148,6 +153,48 @@ Pass an OpenTelemetry trace ID to correlate LLM calls with distributed traces:
       traceId: span.spanContext().traceId,
     });
     ```
+
+## Java SDK (OB-46)
+
+Instrument JVM applications (including Android) with the Java SDK:
+
+```java
+import io.observeml.TrackerClient;
+import java.util.Map;
+
+TrackerClient tracker = new TrackerClient("obs_live_xxxx");
+tracker.track(Map.of(
+    "model", "gpt-4o",
+    "latencyMs", 320,
+    "inputTokens", 150,
+    "outputTokens", 80,
+    "costUsd", 0.0024
+));
+tracker.shutdown();  // graceful flush on app exit
+```
+
+## Session Grouping (OB-45)
+
+Tag related LLM calls with a `session_id` to aggregate cost and latency per session:
+
+=== "Python"
+    ```python
+    observeml.track(model="gpt-4o", latency_ms=320, cost_usd=0.0024,
+                    session_id="user-session-abc123")
+    ```
+
+=== "TypeScript"
+    ```typescript
+    track({ model: "gpt-4o", latencyMs: 320, costUsd: 0.0024,
+            sessionId: "user-session-abc123" });
+    ```
+
+Then retrieve the session summary:
+
+```bash
+curl https://api.observeml.io/v1/metrics/session/user-session-abc123 \
+  -H "x-api-key: obs_live_xxxx"
+```
 
 ## Set Up Alerts
 

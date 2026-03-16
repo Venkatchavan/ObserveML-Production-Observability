@@ -4,7 +4,14 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.clickhouse import query_metrics, query_trend, query_export, query_monthly_cost
+from app.db.clickhouse import (
+    query_metrics,
+    query_trend,
+    query_export,
+    query_monthly_cost,
+    query_session_summary,
+    query_prompt_hashes,
+)
 from app.db.postgres import get_db
 from app.models.events import MetricSummary, TrendPoint, TrendResponse
 from app.services.api_key_service import validate_api_key
@@ -106,3 +113,32 @@ async def token_budget_status(
         "projected_monthly_cost_usd": round(projected, 4),
         "days_in_month": days_in_month,
     }
+
+
+@router.get("/metrics/session/{session_id}")
+async def get_session_summary(
+    session_id: str,
+    x_api_key: str = Header(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """OB-45: Per-session cost, call count, avg latency."""
+    org_id = await validate_api_key(x_api_key, db)
+    if not org_id:
+        raise HTTPException(status_code=401, detail="Invalid or revoked API key")
+    summary = query_session_summary(org_id, session_id)
+    if not summary:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return summary
+
+
+@router.get("/metrics/prompt-hashes")
+async def get_prompt_hash_analytics(
+    limit: int = Query(10, ge=1, le=100),
+    x_api_key: str = Header(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """OB-44: Top-N repeated prompt hashes — frequency only, no prompt text."""
+    org_id = await validate_api_key(x_api_key, db)
+    if not org_id:
+        raise HTTPException(status_code=401, detail="Invalid or revoked API key")
+    return query_prompt_hashes(org_id, limit)

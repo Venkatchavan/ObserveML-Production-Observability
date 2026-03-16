@@ -5,6 +5,51 @@ Format: [Semantic Versioning](https://semver.org). Dates are UTC.
 
 ---
 
+## [1.2.0] — 2026-03-16 (Sprint 05 — Teams, Billing, GDPR, Session Analytics)
+
+### Added
+
+- **OB-41 — Multi-user teams with RBAC** — `POST /v1/teams/invite` adds members with
+  role `owner`, `analyst`, or `viewer`; `GET /v1/teams/members` lists org members.
+  New `team_members` PostgreSQL table with unique (org_id, user_email) constraint.
+- **OB-42 — Stripe billing free tier** — ingest returns `402 Payment Required` after
+  10,001 events in a billing period; fail-open (ClickHouse down never blocks ingestion).
+  `billing_free_tier_limit` config variable (default 10,000).
+- **OB-43 — Usage metering dashboard** — `GET /v1/billing/usage` returns `UsageStatus`
+  model with plan, events_this_month, free_tier_limit, over_limit flag, and
+  projected_cost_usd. New React `UsageMeter` component with bar chart and over-limit banner.
+- **OB-44 — Prompt hash analytics** — `GET /v1/metrics/prompt-hashes?limit=10` returns
+  top-N SHA-256 hashes sorted by frequency; no prompt/response text in response
+  (Observer Principle strictly enforced).
+- **OB-45 — Session grouping** — `session_id` field added to `MetricEvent` and
+  `metric_events` ClickHouse table; `GET /v1/metrics/session/{session_id}` returns
+  total cost, call count, and avg latency for a session.
+- **OB-46 — Java/Kotlin SDK v0.1** — `sdk/java/` with thread-safe `TrackerClient`
+  (244 lines, zero runtime deps). Uses `ArrayBlockingQueue(1_000)` + daemon flush thread.
+  Handles 402 free-tier with log warning. No `prompt` or `response` parameter.
+- **OB-47 — API key rotation** — `POST /v1/org/rotate-key` revokes the current key,
+  issues a new key prefixed `obs_live_`, and writes an `audit_log` row. Old key returns
+  401 within one request.
+- **OB-48 — GDPR data deletion** — two-step: `POST /v1/org/request-data-deletion`
+  issues a 256-bit single-use token (SHA-256 hash stored); `DELETE /v1/org/data?token=`
+  executes after 24h cooling-off. Deletes ClickHouse events + alert_rules. Preserves
+  `organizations` and `usage_billing` for financial compliance (ON DELETE RESTRICT).
+
+### Changed
+
+- Python SDK `session_id` parameter added to `track()`.
+- JS SDK `sessionId` property added to `TrackOptions`.
+- Dashboard: new "Usage" tab showing UsageMeter with bar chart.
+
+### Migration
+
+Run `migrations/clickhouse/002_session_id.sql` on any existing ClickHouse instance
+(`ALTER TABLE metric_events ADD COLUMN IF NOT EXISTS session_id String DEFAULT ''`).
+Run `migrations/postgres/003_teams.sql` through `006_deletion_tokens.sql` in order.
+The `init_db()` startup call performs all PostgreSQL migrations automatically.
+
+---
+
 ## [1.1.0] — 2026-03-12 (Sprint 04 — Sampling, SSE, Analytics)
 
 ### Added

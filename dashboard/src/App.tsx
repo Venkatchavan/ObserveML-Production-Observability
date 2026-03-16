@@ -6,6 +6,7 @@ import { ModelDrillDown } from "./components/ModelDrillDown";
 import { ModelComparison } from "./components/ModelComparison";
 import { RegressionFeed } from "./components/RegressionFeed";
 import { LiveFeed } from "./components/LiveFeed";
+import { UsageMeter } from "./components/UsageMeter";
 import {
   fetchMetrics,
   fetchTrend,
@@ -15,7 +16,7 @@ import {
 import type { MetricSummary, TrendPoint, TokenBudget } from "./api/client";
 import "./App.css";
 
-type Tab = "overview" | "alerts" | "compare" | "live";
+type Tab = "overview" | "alerts" | "compare" | "live" | "usage";
 
 export default function App() {
   const [apiKey, setApiKey] = useState(
@@ -119,6 +120,14 @@ export default function App() {
         >
           Live Feed
         </button>
+        <button
+          role="tab"
+          aria-selected={tab === "usage"}
+          onClick={() => setTab("usage")}
+          className={tab === "usage" ? "tab-active" : ""}
+        >
+          Usage
+        </button>
       </nav>
 
       {error && (
@@ -214,6 +223,8 @@ export default function App() {
       )}
 
       {tab === "live" && <LiveFeed />}
+
+      {tab === "usage" && <UsageMeter />}
     </main>
   );
 }

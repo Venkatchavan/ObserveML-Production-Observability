@@ -1,0 +1,36 @@
+plugins {
+    id 'java-library'
+}
+
+group   = 'io.observeml'
+version = '0.1.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+    withJavadocJar()
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
+// No runtime dependencies — pure Java stdlib only
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly    'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jar {
+    manifest {
+        attributes(
+            'Implementation-Title':   'ObserveML Java SDK',
+            'Implementation-Version': archiveVersion,
+        )
+    }
+}

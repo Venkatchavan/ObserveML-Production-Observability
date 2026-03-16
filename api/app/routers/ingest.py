@@ -9,6 +9,7 @@ from app.models.events import IngestRequest, IngestResponse
 from app.services.api_key_service import validate_api_key
 from app.services.rate_limiter import is_rate_limited
 from app.services.anomaly_detector import run_anomaly_check
+from app.services.billing_service import is_over_free_tier
 from app.services import event_store
 
 router = APIRouter()
@@ -30,6 +31,13 @@ async def ingest(
         raise HTTPException(
             status_code=429,
             detail=f"Rate limit exceeded: {100} requests/minute",
+        )
+
+    # OB-42: enforce free tier limit (10k events/month)
+    if await is_over_free_tier(org_id, db):
+        raise HTTPException(
+            status_code=402,
+            detail="Free tier limit (10,000 events/month) exceeded. Upgrade to Pro.",
         )
 
     now_ts = datetime.now(timezone.utc)

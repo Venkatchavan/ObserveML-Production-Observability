@@ -1,5 +1,5 @@
 # Security Threat Model â€” ObserveML
-**v1.0.3 | 2026-03-12 | Security Engineer**
+**v1.2.0 | 2026-03-16 | Security Engineer**
 
 ---
 
@@ -7,9 +7,12 @@
 
 | Surface | Entry Point | Trust Level |
 |---------|------------|-------------|
-| Ingest API (`/v1/ingest`) | Internet | Untrusted; API key required |
+| Ingest API (`/v1/ingest`) | Internet | Untrusted; API key required; 402 after free-tier breach |
 | Dashboard API (`/v1/metrics`) | Internet | Untrusted; API key required |
-| SDK (npm / PyPI package) | Developer's codebase | Trusted after install |
+| Teams API (`/v1/teams`) | Internet | Untrusted; API key required; role enforced |
+| Billing API (`/v1/billing`) | Internet | Untrusted; API key required |
+| Org Admin API (`/v1/org`) | Internet | Untrusted; API key + deletion token for GDPR |
+| SDK (npm / PyPI / Maven package) | Developer's codebase | Trusted after install |
 | ClickHouse | Internal only | No external access |
 | PostgreSQL | Internal only | No external access |
 
@@ -19,15 +22,15 @@
 
 | # | Risk | ObserveML Control |
 |---|------|-------------------|
-| A01 | Broken Access Control | API key scoped per org; no cross-org data path |
-| A02 | Cryptographic Failures | API keys stored as SHA-256 hashes; HTTPS everywhere |
+| A01 | Broken Access Control | API key scoped per org; no cross-org data path; team roles (owner/analyst/viewer) enforced server-side |
+| A02 | Cryptographic Failures | API keys stored as SHA-256 hashes; deletion tokens stored as SHA-256 hashes; HTTPS everywhere |
 | A03 | Injection | No user-content in SQL (parameterized queries); ClickHouse queries use typed parameters |
-| A04 | Insecure Design | SDK fire-and-forget: no response data returned that could leak org info |
+| A04 | Insecure Design | SDK fire-and-forget: no response data returned; two-step GDPR deletion with 24h cooling-off |
 | A05 | Security Misconfiguration | No debug endpoints; no LLM prompt content in logs |
 | A06 | Vulnerable Components | Dependabot; `safety` + `npm audit` in CI |
-| A07 | Auth Failures | API key validated on every request (no session tokens) |
-| A08 | Data Integrity | SDK events include `event_id` idempotency key; dedup in ingest layer |
-| A09 | Logging Failures | API access logged (org + action); no prompt/response content in logs |
+| A07 | Auth Failures | API key validated on every request (no session tokens); old key invalidated within 1 request of rotation |
+| A08 | Data Integrity | SDK events include `event_id` idempotency key; dedup in ingest layer; deletion tokens are single-use |
+| A09 | Logging Failures | API access logged (org + action); no prompt/response content in logs; audit_log for key rotation and GDPR |
 | A10 | SSRF | No user-controlled URL fetching in SDK or API |
 
 ---
@@ -51,7 +54,17 @@
 
 ### T-04: Metric Flooding (DoS)
 **Threat**: Attacker floods ingest endpoint with high-volume events to inflate ClickHouse storage.  
-**Control**: Per-org ingest rate limit (10K events/min); oversized payloads rejected (max 100 events per batch, max 5KB per event).  
+**Control**: Per-org ingest rate limit (10K events/min); oversized payloads rejected (max 100 events per batch, max 5KB per event); free-tier billing hard cap (402 after 10k events/month).  
+**Residual Risk**: LOW
+
+### T-05: GDPR Deletion via Stolen API Key
+**Threat**: Attacker with stolen API key triggers `POST /v1/org/request-data-deletion` to destroy org data.  
+**Control**: Two-step deletion: (1) request issues a single-use token with 24h cooling-off period; (2) `DELETE /v1/org/data?token=` requires that token. Deleting immediately after issuance returns 409. Org has 24h window to detect and rotate key.  
+**Residual Risk**: LOW
+
+### T-06: Team Role Escalation
+**Threat**: `viewer` role member escalates to `owner` by crafting invite request.  
+**Control**: `role` field is validated server-side via CHECK constraint (`owner`, `analyst`, `viewer`); API key determines org context — cannot invite to a different org.  
 **Residual Risk**: LOW
 
 ---

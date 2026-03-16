@@ -209,3 +209,89 @@ export async function downloadMetricsCsv(days = 30): Promise<void> {
   URL.revokeObjectURL(href);
 }
 
+// OB-42/OB-43: Billing & usage metering
+export interface UsageStatus {
+  org_id: string;
+  plan: string;
+  events_this_month: number;
+  free_tier_limit: number;
+  over_limit: boolean;
+  projected_cost_usd: number;
+}
+
+export async function fetchBillingUsage(): Promise<UsageStatus> {
+  const res = await fetch(`${BASE_URL}/v1/billing/usage`, { headers: headers() });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+// OB-41: Team management
+export interface TeamMember {
+  id: string;
+  org_id: string;
+  user_email: string;
+  role: "owner" | "analyst" | "viewer";
+  invited_at: string;
+  accepted_at: string | null;
+}
+
+export async function fetchTeamMembers(): Promise<TeamMember[]> {
+  const res = await fetch(`${BASE_URL}/v1/teams/members`, { headers: headers() });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+export async function inviteTeamMember(
+  email: string,
+  role: "owner" | "analyst" | "viewer",
+): Promise<TeamMember> {
+  const res = await fetch(`${BASE_URL}/v1/teams/invite`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ email, role }),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+// OB-47: API key rotation
+export async function rotateApiKey(): Promise<{ api_key: string; message: string }> {
+  const res = await fetch(`${BASE_URL}/v1/org/rotate-key`, {
+    method: "POST",
+    headers: headers(),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+// OB-44: Prompt hash analytics
+export interface PromptHashRow {
+  prompt_hash: string;
+  frequency: number;
+}
+
+export async function fetchPromptHashes(limit = 10): Promise<PromptHashRow[]> {
+  const url = new URL(`${BASE_URL}/v1/metrics/prompt-hashes`);
+  url.searchParams.set("limit", String(limit));
+  const res = await fetch(url.toString(), { headers: headers() });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+// OB-45: Session summary
+export interface SessionSummary {
+  session_id: string;
+  call_count: number;
+  avg_latency_ms: number;
+  total_cost_usd: number;
+  error_rate: number;
+}
+
+export async function fetchSessionSummary(sessionId: string): Promise<SessionSummary> {
+  const res = await fetch(`${BASE_URL}/v1/metrics/session/${encodeURIComponent(sessionId)}`, {
+    headers: headers(),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+

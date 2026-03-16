@@ -55,11 +55,12 @@ Developer's LLM App
 |-----------|-----------|----------------|
 | Python SDK | Python 3.9+ (httpx async) | Instrument LLM calls |
 | JS SDK | TypeScript (node-fetch) | Instrument LLM calls (Node/browser) |
-| Ingest API | FastAPI | Receive + validate metric events |
+| Java SDK | Java 11+ (stdlib HttpClient) | Instrument LLM calls (JVM / Android) |
+| Ingest API | FastAPI | Receive + validate metric events; 402 on free-tier breach |
 | Analytics DB | ClickHouse | Time-series metrics storage + aggregation |
-| Metadata DB | PostgreSQL | Orgs, API keys, alert rules |
+| Metadata DB | PostgreSQL | Orgs, API keys, alert rules, teams, billing, audit log |
 | Dashboard API | FastAPI | Serve dashboard metrics |
-| Dashboard UI | React + Recharts | Visualize metrics |
+| Dashboard UI | React + Recharts | Visualize metrics (Usage, Live Feed, Comparison) |
 | Deploy | Fly.io | Production hosting |
 
 ---

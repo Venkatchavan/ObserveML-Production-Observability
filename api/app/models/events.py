@@ -26,6 +26,7 @@ class MetricEvent(BaseModel):
     # Raw prompt/response is NEVER transmitted. Observer Principle enforced.
     prompt_hash: str = ""
     trace_id: str = ""  # OB-36: OpenTelemetry trace propagation
+    session_id: str = ""  # OB-45: session grouping
 
 
 class IngestRequest(BaseModel):

@@ -1,7 +1,7 @@
 # ObserveML — Production Observability for LLM Apps
 
 > Project 03 · The Agency AGI · NEXUS-Micro Deployment  
-> **Version: v1.1.0 — 2026-03-12 — Sprint 4 (Sampling, SSE, Analytics)**
+> **Version: v1.2.0 — 2026-03-16 — Sprint 5 (Teams, Billing, GDPR, Session Analytics)**
 >
 > *"Prajnanam Brahma" — Consciousness is Brahman. (Aitareya Upanishad 3.3)*  
 > *Your LLM app is not conscious — but it should be observable. ObserveML gives it awareness of itself.*
@@ -67,8 +67,9 @@ track({ model: 'gpt-4o', latencyMs: 320, inputTokens: 150, outputTokens: 80, cos
 
 | Layer | Technology | Version |
 |-------|------------|----------|
-| **Python SDK** | observeml (PyPI) | `1.1.0` |
-| **JS/TS SDK** | observeml (npm) | `1.1.0` |
+| **Python SDK** | observeml (PyPI) | `1.2.0` |
+| **JS/TS SDK** | observeml (npm) | `1.2.0` |
+| **Java SDK** | io.observeml:observeml-java (Maven/Gradle) | `0.1.0` |
 | **Backend API** | FastAPI + Uvicorn | `0.111` / `0.29` |
 | **Metadata DB** | PostgreSQL | `16` |
 | **Metrics Store** | ClickHouse (MergeTree, 90-day TTL) | `23.8` |
@@ -101,15 +102,19 @@ track({ model: 'gpt-4o', latencyMs: 320, inputTokens: 150, outputTokens: 80, cos
 | **Sprint 2** | ✅ Done | Alert rules, anomaly detection, dashboard v0.2 |
 | **Sprint 3** | ✅ Done | Multi-model comparison, regression detection, v1.0.0 production |
 | **Sprint 4** | ✅ Done | Sampling, SSE live feed, percentiles (p50/p95/p99), trace_id, model routing, CSV export, token budget |
+| **Sprint 5** | ✅ Done | Teams/RBAC, Stripe billing (free tier), usage metering, prompt hash analytics, session grouping, Java SDK, API key rotation, GDPR deletion |
 
 ## Quick Start
 
 ```bash
 # Python
-pip install observeml==1.1.0
+pip install observeml==1.2.0
 
 # TypeScript / Node
-npm install observeml@1.1.0
+npm install observeml@1.2.0
+
+# Java / Gradle
+implementation 'io.observeml:observeml-java:0.1.0'
 ```
 
 See the [Python SDK README](sdk/python/README.md) or the [docs site](docs-site/docs/quickstart.md) for a
@@ -138,4 +143,4 @@ full integration walkthrough.
 
 ---
 
-*Copyright © 2026 Venkat Chavan · Licensed under the [MIT License](LICENSE) · ObserveML v1.1.0 · [GitHub](https://github.com/Venkatchavan/ObserveML-Production-Observability)*
+*Copyright © 2026 Venkat Chavan · Licensed under the [MIT License](LICENSE) · ObserveML v1.2.0 · [GitHub](https://github.com/Venkatchavan/ObserveML-Production-Observability)*

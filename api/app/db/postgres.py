@@ -89,3 +89,71 @@ async def init_db():
             ON alert_fired(org_id, fired_at DESC)
         """)
         )
+        # OB-41: team members with RBAC
+        await conn.execute(
+            text("""
+            CREATE TABLE IF NOT EXISTS team_members (
+                id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+                org_id      UUID        NOT NULL
+                                REFERENCES organizations(id) ON DELETE CASCADE,
+                user_email  VARCHAR(255) NOT NULL,
+                role        VARCHAR(20)  NOT NULL DEFAULT 'viewer'
+                                CHECK (role IN ('owner', 'analyst', 'viewer')),
+                invited_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+                accepted_at TIMESTAMPTZ
+            )
+        """)
+        )
+        await conn.execute(
+            text("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_team_members_org_email
+            ON team_members(org_id, user_email)
+        """)
+        )
+        # OB-47: audit log for key rotation and GDPR events
+        await conn.execute(
+            text("""
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+                org_id     UUID        NOT NULL
+                               REFERENCES organizations(id) ON DELETE CASCADE,
+                action     VARCHAR(64) NOT NULL,
+                actor      VARCHAR(255),
+                details    TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        """)
+        )
+        # OB-42: usage billing — ON DELETE RESTRICT preserves billing history
+        await conn.execute(
+            text("""
+            CREATE TABLE IF NOT EXISTS usage_billing (
+                id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+                org_id         UUID        NOT NULL
+                                   REFERENCES organizations(id) ON DELETE RESTRICT,
+                billing_period VARCHAR(7)  NOT NULL,
+                event_count    BIGINT      NOT NULL DEFAULT 0,
+                created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        """)
+        )
+        await conn.execute(
+            text("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_usage_billing_org_period
+            ON usage_billing(org_id, billing_period)
+        """)
+        )
+        # OB-48: GDPR deletion tokens — single-use with 24h cooling-off
+        await conn.execute(
+            text("""
+            CREATE TABLE IF NOT EXISTS deletion_tokens (
+                id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+                org_id       UUID        NOT NULL
+                                 REFERENCES organizations(id) ON DELETE CASCADE,
+                token_hash   VARCHAR(64) NOT NULL UNIQUE,
+                requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                executed_at  TIMESTAMPTZ
+            )
+        """)
+        )

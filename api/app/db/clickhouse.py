@@ -40,6 +40,10 @@ def ensure_table():
     """)
     # OB-36: idempotent schema migration — add trace_id if not already present
     client.command("ALTER TABLE metric_events ADD COLUMN IF NOT EXISTS trace_id String DEFAULT ''")
+    # OB-45: idempotent schema migration — add session_id
+    client.command(
+        "ALTER TABLE metric_events ADD COLUMN IF NOT EXISTS session_id String DEFAULT ''"
+    )
 
 
 def insert_events(org_id: str, events: List[Dict[str, Any]]) -> None:
@@ -297,3 +301,71 @@ def query_export(org_id: str, days: int = 30) -> List[Dict]:
         parameters={"org_id": org_id, "days": days},
     )
     return [dict(zip(result.column_names, row)) for row in result.result_rows]
+
+
+def query_session_summary(org_id: str, session_id: str) -> Dict:
+    """OB-45: Cost, call count, avg latency for a session."""
+    result = _client().query(
+        """
+        SELECT
+            session_id,
+            count()                AS call_count,
+            avg(latency_ms)        AS avg_latency_ms,
+            sum(cost_usd)          AS total_cost_usd,
+            countIf(error)/count() AS error_rate
+        FROM metric_events
+        WHERE org_id = %(org_id)s
+          AND session_id = %(session_id)s
+        GROUP BY session_id
+    """,
+        parameters={"org_id": org_id, "session_id": session_id},
+    )
+    rows = result.result_rows
+    if not rows:
+        return {}
+    return dict(zip(result.column_names, rows[0]))
+
+
+def query_prompt_hashes(org_id: str, limit: int = 10) -> List[Dict]:
+    """OB-44: Top-N most-repeated prompt hashes (dedup frequency). No prompt text."""
+    result = _client().query(
+        """
+        SELECT
+            prompt_hash,
+            count() AS frequency
+        FROM metric_events
+        WHERE org_id = %(org_id)s
+          AND prompt_hash != ''
+        GROUP BY prompt_hash
+        ORDER BY frequency DESC
+        LIMIT %(limit)s
+    """,
+        parameters={"org_id": org_id, "limit": limit},
+    )
+    return [dict(zip(result.column_names, row)) for row in result.result_rows]
+
+
+def count_events_this_month(org_id: str) -> int:
+    """OB-42: Count ingested events for the current billing period (calendar month)."""
+    result = _client().query(
+        """
+        SELECT count() AS n
+        FROM metric_events
+        WHERE org_id = %(org_id)s
+          AND toMonth(ts) = toMonth(now())
+          AND toYear(ts) = toYear(now())
+    """,
+        parameters={"org_id": org_id},
+    )
+    rows = result.result_rows
+    if not rows:
+        return 0
+    return int(rows[0][0])
+
+
+def delete_org_events(org_id: str) -> None:
+    """OB-48: GDPR — delete all metric events for the org from ClickHouse."""
+    _client().command(
+        "ALTER TABLE metric_events DELETE WHERE org_id = %(org_id)s",
+        parameters={"org_id": org_id},
+    )
