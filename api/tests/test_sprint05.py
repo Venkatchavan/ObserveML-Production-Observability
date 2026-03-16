@@ -6,9 +6,12 @@ Fixtures (db_init, test_credentials) are auto-discovered from conftest.py.
 """
 
 from unittest.mock import patch
+import hashlib
+import uuid
 
+from sqlalchemy import text
 
-from conftest import _make_client
+from conftest import _make_client, _get_session
 
 
 # ---------------------------------------------------------------------------
@@ -170,19 +173,32 @@ async def test_session_summary_after_ingest(test_credentials):
 
 async def test_rotate_api_key_revokes_old_key(test_credentials):
     """POST /v1/org/rotate-key must return a new key; old key returns 401."""
-    _, raw_key = test_credentials
+    org_id, _ = test_credentials
+    # Create a disposable key for this test — never mutate the shared fixture key.
+    disposable_raw = f"test-{uuid.uuid4().hex}"
+    disposable_hash = hashlib.sha256(disposable_raw.encode()).hexdigest()
+    db = await _get_session()
+    try:
+        await db.execute(
+            text("INSERT INTO api_keys (org_id, key_hash) VALUES (:org_id, :key_hash)"),
+            {"org_id": org_id, "key_hash": disposable_hash},
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
     async with _make_client() as client:
-        rotate_resp = await client.post("/v1/org/rotate-key", headers={"x-api-key": raw_key})
+        rotate_resp = await client.post("/v1/org/rotate-key", headers={"x-api-key": disposable_raw})
     assert rotate_resp.status_code == 200
     body = rotate_resp.json()
     assert "api_key" in body
     new_key = body["api_key"]
-    assert new_key != raw_key
+    assert new_key != disposable_raw
     assert new_key.startswith("obs_live_")
 
-    # Old key must now be revoked
+    # Old (disposable) key must now be revoked
     async with _make_client() as client:
-        old_resp = await client.get("/v1/metrics", headers={"x-api-key": raw_key})
+        old_resp = await client.get("/v1/metrics", headers={"x-api-key": disposable_raw})
     assert old_resp.status_code == 401
 
     # New key must work
