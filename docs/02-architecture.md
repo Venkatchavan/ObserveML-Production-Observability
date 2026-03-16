@@ -1,5 +1,5 @@
 # Architecture â€” ObserveML
-**v1.0.3 | 2026-03-12 | Backend Architect**
+**v2.0.0 | 2026-03-16 | Backend Architect**
 
 ---
 
@@ -56,12 +56,15 @@ Developer's LLM App
 | Python SDK | Python 3.9+ (httpx async) | Instrument LLM calls |
 | JS SDK | TypeScript (node-fetch) | Instrument LLM calls (Node/browser) |
 | Java SDK | Java 11+ (stdlib HttpClient) | Instrument LLM calls (JVM / Android) |
+| Ruby SDK | Ruby 2.7+ (Net::HTTP, stdlib only) | Instrument LLM calls (Rails / Ruby apps) |
 | Ingest API | FastAPI | Receive + validate metric events; 402 on free-tier breach |
 | Analytics DB | ClickHouse | Time-series metrics storage + aggregation |
 | Metadata DB | PostgreSQL | Orgs, API keys, alert rules, teams, billing, audit log |
-| Dashboard API | FastAPI | Serve dashboard metrics |
+| Cache | Redis (optional, fail-open) | Query result caching for intelligence endpoints (TTL 60 s) |
+| Dashboard API | FastAPI | Serve dashboard metrics + intelligence layer |
 | Dashboard UI | React + Recharts | Visualize metrics (Usage, Live Feed, Comparison) |
-| Deploy | Fly.io | Production hosting |
+| Grafana Plugin | TypeScript (Grafana SDK) | Native Grafana datasource for ObserveML metrics |
+| Deploy | Fly.io | Production hosting (multi-region capable) |
 
 ---
 
@@ -88,7 +91,12 @@ Developer's LLM App
 | POST | `/v1/ingest` | API key | Batch metric event ingest |
 | GET | `/v1/metrics` | API key | Aggregated metrics (org-scoped) |
 | GET | `/v1/metrics/trend` | API key | 7-day trend data |
+| GET | `/v1/metrics/session/{id}` | API key | Session cost + call summary |
+| GET | `/v1/metrics/prompt-hashes` | API key | Top-N prompt SHA-256 hashes |
 | POST | `/v1/alerts` | API key | Create alert rule |
+| GET | `/v1/intelligence/root-cause` | API key | Root cause narration (OB-51) |
+| GET | `/v1/intelligence/forecast` | API key | 7-day cost forecast (OB-52) |
+| GET | `/v1/intelligence/model-select` | API key | Model selection assistant (OB-53) |
 | GET | `/health` | None | Health check |
 
 ---
@@ -118,8 +126,36 @@ Async flush (background):
 
 ## 8. 333-Line Law Compliance
 
-- `sdk/python/observe.py` â€” public API surface only
-- `sdk/python/_buffer.py` â€” async buffer + flush only
-- `api/ingest/router.py` â€” ingest validation + write only
-- `api/metrics/router.py` â€” aggregation queries only
+- `sdk/python/observe.py` — public API surface only
+- `sdk/python/_buffer.py` — async buffer + flush only
+- `api/ingest/router.py` — ingest validation + write only
+- `api/metrics/router.py` — aggregation queries only
+- `api/app/db/clickhouse.py` — core ingest + routing queries only (analytics split to `clickhouse_analytics.py`)
+- `api/app/db/clickhouse_analytics.py` — analytics + intelligence queries only
+- `api/app/routers/intelligence.py` — intelligence endpoints only
 
+---
+
+## 9. Intelligence Layer (Sprint 06)
+
+The v2.0.0 intelligence layer adds three heuristic analysis endpoints that run against the
+existing ClickHouse metric data — no external AI service required.
+
+```
+/v1/intelligence/root-cause  ──► clickhouse_analytics.query_anomaly_context()
+                                  ──► root_cause_service.build_root_cause()
+                                       Confidence: HIGH/MEDIUM/LOW
+                                       Caveat: always present (Śhāstrārtha gate)
+
+/v1/intelligence/forecast    ──► clickhouse_analytics.query_daily_cost_14d()
+                                  ──► forecast_service.build_forecast()
+                                       OLS linear regression
+                                       CI: lower/upper (1.96σ)
+
+/v1/intelligence/model-select ──► clickhouse.query_model_routing()
+                                   Sort by avg_cost_usd, filter error_rate < 0.05
+                                   Caveat: always present (Vedantic Launch Gate)
+```
+
+All three endpoints are **fail-open**: a ClickHouse outage returns a structured empty
+response, never a `500` error.

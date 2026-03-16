@@ -1,0 +1,25 @@
+{
+  "type": "datasource",
+  "name": "ObserveML",
+  "id": "observeml-datasource",
+  "info": {
+    "description": "ObserveML LLM observability metrics for Grafana",
+    "author": { "name": "Venkat Chavan", "url": "https://observeml.io" },
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "version": "1.0.0",
+    "updated": "2026-03-16"
+  },
+  "backend": false,
+  "routes": [
+    {
+      "path": "v1",
+      "url": "{{ .JsonData.apiUrl }}/v1",
+      "headers": [
+        { "name": "x-api-key", "content": "{{ .SecureJsonData.apiKey }}" }
+      ]
+    }
+  ]
+}

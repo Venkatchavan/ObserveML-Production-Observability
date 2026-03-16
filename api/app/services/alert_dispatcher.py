@@ -1,7 +1,9 @@
-"""OB-12: Alert dispatch — persists alert_fired row + SSRF-safe webhook delivery."""
+"""OB-12: Alert dispatch — persists alert_fired row + SSRF-safe webhook delivery.
+OB-54: Enriched Slack Block Kit payload with sparkline chart image.
+"""
 
 import ipaddress
-from typing import Optional
+from typing import List, Optional
 from urllib.parse import urlparse
 
 import httpx
@@ -44,6 +46,15 @@ def _is_ssrf_safe(url: str) -> bool:
         return False
 
 
+def _sparkline_url(values: List[float]) -> str:
+    """OB-54: Generate a QuickChart sparkline URL for the last N metric values."""
+    data = ",".join(f"{v:.2f}" for v in values[-10:])
+    return (
+        f"https://quickchart.io/chart?c={{type:'sparkline',data:{{datasets:[{{data:[{data}]}}]}}}}",
+        "&w=200&h=40&backgroundColor=transparent",
+    )
+
+
 async def dispatch_alert(
     rule_id: str,
     org_id: str,
@@ -53,6 +64,7 @@ async def dispatch_alert(
     threshold: float,
     webhook_url: Optional[str],
     db: AsyncSession,
+    sparkline_data: Optional[List[float]] = None,  # OB-54: last N values for chart
 ) -> None:
     """Persist alert_fired row and POST to webhook (if configured and SSRF-safe)."""
     await db.execute(
@@ -76,14 +88,39 @@ async def dispatch_alert(
     if not webhook_url or not _is_ssrf_safe(webhook_url):
         return
 
-    payload = {
-        "event": "anomaly_detected",
-        "org_id": org_id,
-        "call_site": call_site,
-        "metric": metric,
-        "current_value": current_value,
-        "threshold": threshold,
-    }
+    # OB-54: Build Slack Block Kit payload when sparkline data is available
+    if sparkline_data and len(sparkline_data) >= 2:
+        chart_url = _sparkline_url(sparkline_data)
+        payload: dict = {
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": (
+                            f"*🚨 ObserveML Alert*\n"
+                            f"Org: `{org_id}` · Call site: `{call_site}`\n"
+                            f"Metric *{metric}* = `{current_value:.4f}` "
+                            f"(threshold: `{threshold}`)"
+                        ),
+                    },
+                },
+                {
+                    "type": "image",
+                    "image_url": chart_url,
+                    "alt_text": f"{metric} sparkline",
+                },
+            ]
+        }
+    else:
+        payload = {
+            "event": "anomaly_detected",
+            "org_id": org_id,
+            "call_site": call_site,
+            "metric": metric,
+            "current_value": current_value,
+            "threshold": threshold,
+        }
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             await client.post(webhook_url, json=payload)

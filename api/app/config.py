@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     # OB-42: Stripe billing — set STRIPE_API_KEY env var to enable live metering
     stripe_api_key: str = ""
     billing_free_tier_limit: int = 10_000  # events/month on free plan
+    # OB-55: Redis cache for ClickHouse dashboard queries (60s TTL)
+    redis_url: str = ""  # e.g. redis://localhost:6379/0; empty = caching disabled
 
     class Config:
         env_file = ".env"

@@ -8,12 +8,17 @@ Sign up at [app.observeml.io](https://app.observeml.io) and create your first AP
 
 === "Python"
     ```bash
-    pip install observeml==1.2.0
+    pip install observeml==2.0.0
     ```
 
 === "TypeScript / npm"
     ```bash
-    npm install observeml@1.2.0
+    npm install observeml@2.0.0
+    ```
+
+=== "Ruby"
+    ```bash
+    gem install observeml
     ```
 
 === "Java / Gradle"
@@ -172,6 +177,35 @@ tracker.track(Map.of(
 ));
 tracker.shutdown();  // graceful flush on app exit
 ```
+
+## Ruby SDK (OB-57)
+
+Instrument Ruby and Rails applications with the Ruby SDK (zero runtime dependencies):
+
+```ruby
+require 'observeml'
+
+ObserveML.configure(api_key: 'obs_live_xxxx')
+
+# In your LLM wrapper:
+t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
+response = client.chat(messages: [{ role: 'user', content: prompt }])
+latency_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond) - t0
+
+ObserveML.track(
+  model: 'gpt-4o',
+  latency_ms: latency_ms,
+  input_tokens: response.usage.prompt_tokens,
+  output_tokens: response.usage.completion_tokens,
+  cost_usd: 0.0024,
+  call_site: 'chat'
+)
+```
+
+`ObserveML.track` is fire-and-forget — it enqueues the event and returns immediately.
+The daemon flush thread batches and sends events every 5 seconds.
+Call `ObserveML.shutdown` to drain the queue gracefully on app exit (automatically
+called via `at_exit`).
 
 ## Session Grouping (OB-45)
 

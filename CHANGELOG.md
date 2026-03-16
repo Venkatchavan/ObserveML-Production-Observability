@@ -5,6 +5,54 @@ Format: [Semantic Versioning](https://semver.org). Dates are UTC.
 
 ---
 
+## [2.0.0] — 2026-03-16 (Sprint 06 — Intelligence Layer)
+
+### Added
+
+- **OB-51 — Root cause narration** — `GET /v1/intelligence/root-cause` returns a
+  plain-English narrative of p99 latency spikes with `confidence` (HIGH/MEDIUM/LOW),
+  `contributing_factors`, raw `data`, `show_data_url`, and mandatory `caveat`
+  (Śhāstrārtha gate: every inference cites its evidence).
+- **OB-52 — 7-day cost forecast** — `GET /v1/intelligence/forecast` fits an OLS linear
+  regression on 14-day rolling daily costs and returns per-day projections each with
+  `ci_lower`/`ci_upper` (1.96σ confidence interval). Never a bare point estimate
+  (Vedantic Launch Gate).
+- **OB-53 — Model selection assistant** — `GET /v1/intelligence/model-select` recommends
+  the cheapest model in observed history satisfying caller-supplied `max_latency_ms` and
+  `max_cost_usd` constraints; always includes `caveat` about benchmark vs. production
+  differences.
+- **OB-54 — Enriched Slack alerts** — `dispatch_alert()` now accepts optional
+  `sparkline_data`; when ≥ 2 values are supplied, emits a Slack Block Kit payload with
+  a sparkline image via QuickChart.io. Falls back to plain JSON (backward compatible).
+- **OB-55 — Redis query caching** — `cache_service.py` adds fail-open Redis caching for
+  intelligence endpoints (TTL 60 s). Disabled when `REDIS_URL=""`. Uses `redis.asyncio`;
+  silently skipped if unavailable.
+- **OB-56 — Grafana datasource plugin** — `grafana-plugin/` provides a Grafana frontend
+  datasource plugin. Supports `metrics` and `trend` query types. Authenticates with the
+  org API key stored as a Grafana secure field.
+- **OB-57 — Ruby SDK v0.1.0** — `sdk/ruby/` with thread-safe `ObserveML.track()`.
+  Uses `SizedQueue(1000)` + daemon flush thread + `at_exit` hook. Zero runtime deps
+  (stdlib only). Observer Principle enforced: no `prompt` or `response` parameter.
+- **OB-58 — Multi-region runbook** — `docs/07-multi-region-runbook.md` covers Fly.io
+  multi-region, ClickHouse Cloud replication, PostgreSQL read replicas, Cloudflare DNS
+  failover, and step-by-step EU primary promotion procedure.
+
+### Fixed
+
+- `insert_events` was missing `session_id` from the ClickHouse column list (Sprint 05
+  regression). Events ingested with a `session_id` would silently drop the field.
+- `clickhouse.py` violated the 333-Line Law (was 371 lines). Analytics functions
+  (`query_session_summary`, `query_prompt_hashes`, `count_events_this_month`,
+  `delete_org_events`) moved to new `clickhouse_analytics.py` — both files now compliant.
+
+### Changed
+
+- `config.py` adds `redis_url: str = ""` (empty = caching disabled).
+- `main.py` version bumped to `2.0.0`; intelligence router registered at `/v1`.
+- `alert_dispatcher.py` signature extended with `sparkline_data: Optional[List[float]]`.
+
+---
+
 ## [1.2.0] — 2026-03-16 (Sprint 05 — Teams, Billing, GDPR, Session Analytics)
 
 ### Added

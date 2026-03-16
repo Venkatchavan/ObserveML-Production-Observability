@@ -9,9 +9,8 @@ from app.db.clickhouse import (
     query_trend,
     query_export,
     query_monthly_cost,
-    query_session_summary,
-    query_prompt_hashes,
 )
+from app.db.clickhouse_analytics import query_session_summary, query_prompt_hashes
 from app.db.postgres import get_db
 from app.models.events import MetricSummary, TrendPoint, TrendResponse
 from app.services.api_key_service import validate_api_key

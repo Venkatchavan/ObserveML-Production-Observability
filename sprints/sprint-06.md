@@ -1,6 +1,6 @@
 # Sprint 06 — ObserveML
 **Duration**: 2 weeks | **Goal**: Intelligence layer — cost forecasting, AI root cause, Grafana plugin  
-**Version**: v2.0.0 | **Agent**: Sprint Prioritizer
+**Version**: v2.0.0 | **Agent**: Sprint Prioritizer | **Status**: ✅ COMPLETED 2026-03-16
 
 ---
 
@@ -31,14 +31,14 @@
 
 ## Definition of Done
 
-- [ ] Root cause narration: tested on 3 synthetic spike scenarios; AI narrative mentions the correct contributing call_site in each
-- [ ] Cost forecast: 7-day projection tested against held-out 7 days of historical data; MAPE ≤ 25%
-- [ ] Model selection assistant: recommends cheapest model that satisfies latency and error_rate constraints from last 7 days of data
-- [ ] Enriched Slack alert: chart image encoded and attached to Slack Block Kit message
-- [ ] ClickHouse cache: second dashboard load within 60s uses cached result (verified via query count metric)
-- [ ] Grafana plugin: loads in Grafana 10.x, renders avg_latency_ms and call_count panels without error
-- [ ] Ruby gem: `ObserveML.configure(api_key:)` and `ObserveML.track(model:, latency_ms:)` match documented API
-- [ ] Ruby gem Observer Principle: no `prompt` or `response` parameter exists — MUST PASS
+- [x] Root cause narration: tested on 3 synthetic spike scenarios; AI narrative mentions the correct contributing call_site in each
+- [x] Cost forecast: 7-day projection tested against held-out 7 days of historical data; MAPE ≤ 25%
+- [x] Model selection assistant: recommends cheapest model that satisfies latency and error_rate constraints from last 7 days of data
+- [x] Enriched Slack alert: chart image encoded and attached to Slack Block Kit message
+- [x] ClickHouse cache: second dashboard load within 60s uses cached result (verified via query count metric)
+- [x] Grafana plugin: loads in Grafana 10.x, renders avg_latency_ms and call_count panels without error
+- [x] Ruby gem: `ObserveML.configure(api_key:)` and `ObserveML.track(model:, latency_ms:)` match documented API
+- [x] Ruby gem Observer Principle: no `prompt` or `response` parameter exists — MUST PASS
 
 ---
 
@@ -46,10 +46,10 @@
 
 > *Neti Neti — The model selection assistant does not know the user's prompt workload, privacy constraints, or compliance requirements. It can only reason about the metrics it has seen. Outputs must be framed as data-driven suggestions with explicit limitations stated.*
 
-- [ ] Model selection assistant response includes a `caveat` field: "Based on observed performance only; evaluate for your specific workload"
-- [ ] Cost forecast confidence interval shown in UI (not just point estimate)
-- [ ] Grafana plugin authenticates with API key — no anonymous data source access
-- [ ] 333-Line Law: all intelligence modules checked
+- [x] Model selection assistant response includes a `caveat` field: "Based on observed performance only; evaluate for your specific workload"
+- [x] Cost forecast confidence interval shown in UI (not just point estimate)
+- [x] Grafana plugin authenticates with API key — no anonymous data source access
+- [x] 333-Line Law: all intelligence modules checked
 
 ---
 

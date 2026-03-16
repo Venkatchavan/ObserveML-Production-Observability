@@ -1,5 +1,5 @@
 # Security Threat Model â€” ObserveML
-**v1.2.0 | 2026-03-16 | Security Engineer**
+**v2.0.0 | 2026-03-16 | Security Engineer**
 
 ---
 
@@ -12,7 +12,8 @@
 | Teams API (`/v1/teams`) | Internet | Untrusted; API key required; role enforced |
 | Billing API (`/v1/billing`) | Internet | Untrusted; API key required |
 | Org Admin API (`/v1/org`) | Internet | Untrusted; API key + deletion token for GDPR |
-| SDK (npm / PyPI / Maven package) | Developer's codebase | Trusted after install |
+| Intelligence API (`/v1/intelligence`) | Internet | Untrusted; API key required; fail-open (never 500) |
+| SDK (npm / PyPI / Maven / RubyGems) | Developer's codebase | Trusted after install |
 | ClickHouse | Internal only | No external access |
 | PostgreSQL | Internal only | No external access |
 
@@ -31,7 +32,7 @@
 | A07 | Auth Failures | API key validated on every request (no session tokens); old key invalidated within 1 request of rotation |
 | A08 | Data Integrity | SDK events include `event_id` idempotency key; dedup in ingest layer; deletion tokens are single-use |
 | A09 | Logging Failures | API access logged (org + action); no prompt/response content in logs; audit_log for key rotation and GDPR |
-| A10 | SSRF | No user-controlled URL fetching in SDK or API |
+| A10 | SSRF | No user-controlled URL fetching in SDK or API. Sparkline images use QuickChart.io with metric values only — no org identifiers or private data in URL |
 
 ---
 
@@ -66,6 +67,11 @@
 **Threat**: `viewer` role member escalates to `owner` by crafting invite request.  
 **Control**: `role` field is validated server-side via CHECK constraint (`owner`, `analyst`, `viewer`); API key determines org context — cannot invite to a different org.  
 **Residual Risk**: LOW
+
+### T-07: Root Cause Narration Hallucination Risk
+**Threat**: The `/v1/intelligence/root-cause` endpoint produces a plausible but false narrative, leading engineers to the wrong remediation action.  
+**Control**: (1) Narrative is purely heuristic — only references observed metric values from ClickHouse, no LLM. (2) Every response includes `confidence` (HIGH/MEDIUM/LOW) and mandatory `caveat`. (3) `show_data_url` links to raw time-series data so engineers can verify themselves. (4) LOW confidence is returned when sample size < 20 or delta < 20%.  
+**Residual Risk**: MEDIUM — engineers must treat narration as a starting hypothesis, not ground truth. The `caveat` field enforces this expectation in the API contract.
 
 ---
 

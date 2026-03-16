@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 def _count_events_this_month(org_id: str) -> int:
     """Query ClickHouse for event count in the current calendar month."""
     try:
-        from app.db.clickhouse import count_events_this_month
+        from app.db.clickhouse_analytics import count_events_this_month
 
         return count_events_this_month(org_id)
     except Exception as exc:

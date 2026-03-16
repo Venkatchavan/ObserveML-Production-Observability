@@ -83,7 +83,7 @@ async def execute_deletion(org_id: str, raw_token: str, db: AsyncSession) -> Opt
 
     # Execute — ClickHouse first (can be retried if it fails)
     try:
-        from app.db.clickhouse import delete_org_events
+        from app.db.clickhouse_analytics import delete_org_events
 
         delete_org_events(org_id)
     except Exception as exc:
